@@ -311,7 +311,7 @@ export const AdminTournamentsPage: React.FC = () => {
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
                 <Link to={`/tournaments/${tournament.id}`} className="flex-1">
-                  <Button size="sm" variant="outline" className="w-full border-[#292932]  hover:bg-[#292932]">
+                  <Button size="sm" variant="outline" className="w-full border-[#292932] hover:bg-[#292932]">
                     View
                   </Button>
                 </Link>
@@ -326,7 +326,7 @@ export const AdminTournamentsPage: React.FC = () => {
                 <Button 
                   size="sm"
                   variant="outline"
-                  className="border-[#292932] text-white hover:bg-[#292932]"
+                  className="border-[#292932] hover:text-white hover:bg-[#292932]"
                 >
                   <EditIcon className="w-3 h-3 mr-1" />
                   Edit
@@ -379,10 +379,10 @@ export const AdminTournamentsPage: React.FC = () => {
           Showing {filteredTournaments.length} of {tournaments.length} tournaments
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
             Previous
           </Button>
-          <Button variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
             Next
           </Button>
         </div>

@@ -211,7 +211,7 @@ export const PostsManagementPage: React.FC = () => {
                 {selectedPosts.length} post{selectedPosts.length > 1 ? 's' : ''} selected
               </span>
               <div className="flex space-x-2">
-                <Button size="sm" variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+                <Button size="sm" variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
                   Publish Selected
                 </Button>
                 <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white">
@@ -287,7 +287,7 @@ export const PostsManagementPage: React.FC = () => {
                 <Button 
                   size="sm" 
                   variant="outline"
-                  className="flex-1 border-[#292932] text-white hover:bg-[#292932]"
+                  className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
                 >
                   <EyeIcon className="w-3 h-3 mr-1" />
                   View
@@ -295,7 +295,7 @@ export const PostsManagementPage: React.FC = () => {
                 <Button 
                   size="sm"
                   variant="outline"
-                  className="flex-1 border-[#292932] text-white hover:bg-[#292932]"
+                  className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
                 >
                   <EditIcon className="w-3 h-3 mr-1" />
                   Edit
@@ -389,7 +389,7 @@ export const PostsManagementPage: React.FC = () => {
                     type="button"
                     onClick={() => setShowCreateModal(false)}
                     variant="outline"
-                    className="flex-1 border-[#292932] text-white hover:bg-[#292932]"
+                    className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
                   >
                     Cancel
                   </Button>
@@ -406,10 +406,10 @@ export const PostsManagementPage: React.FC = () => {
           Showing {filteredPosts.length} of {posts.length} posts
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
             Previous
           </Button>
-          <Button variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
             Next
           </Button>
         </div>

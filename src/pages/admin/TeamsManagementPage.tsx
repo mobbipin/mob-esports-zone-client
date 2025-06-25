@@ -186,7 +186,7 @@ export const TeamsManagementPage: React.FC = () => {
           <p className="text-gray-400">Manage teams and their rosters</p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
             Export Teams
           </Button>
         </div>
@@ -269,7 +269,7 @@ export const TeamsManagementPage: React.FC = () => {
                 {selectedTeams.length} team{selectedTeams.length > 1 ? 's' : ''} selected
               </span>
               <div className="flex space-x-2">
-                <Button size="sm" variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+                <Button size="sm" variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
                   <MessageCircleIcon className="w-4 h-4 mr-2" />
                   Message Captains
                 </Button>
@@ -373,7 +373,7 @@ export const TeamsManagementPage: React.FC = () => {
                 <Button 
                   size="sm" 
                   variant="outline"
-                  className="flex-1 border-[#292932]  hover:bg-[#292932]"
+                  className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
                 >
                   <EditIcon className="w-3 h-3 mr-1" />
                   Edit
@@ -411,10 +411,10 @@ export const TeamsManagementPage: React.FC = () => {
           Showing {filteredTeams.length} of {teams.length} teams
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
             Previous
           </Button>
-          <Button variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
             Next
           </Button>
         </div>
