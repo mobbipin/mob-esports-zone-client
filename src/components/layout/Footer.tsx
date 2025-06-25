@@ -9,8 +9,8 @@ export const Footer: React.FC = () => {
           {/* Logo and Description */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-[#f34024] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M</span>
+              <div className="w-8 h-8 bg-[#f34024] rounded-lg flex items-center justify-center overflow-hidden">
+                <img src="assets/logo.png" alt="MOB Esports Logo" className="w-7 h-7 object-contain" />
               </div>
               <span className="text-white font-bold text-xl">MOB ESPORTS ZONE</span>
             </div>

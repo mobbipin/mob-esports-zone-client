@@ -40,8 +40,8 @@ export const AdminLayout: React.FC = () => {
       } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
         <div className="flex items-center justify-between h-16 px-4 border-b border-[#292932]">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-[#f34024] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">M</span>
+            <div className="w-8 h-8 bg-[#f34024] rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="/assets/logo.png" alt="MOB Esports Logo" className="w-7 h-7 object-contain" />
             </div>
             <span className="text-white font-bold">Admin Panel</span>
           </div>

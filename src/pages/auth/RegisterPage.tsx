@@ -60,8 +60,8 @@ export const RegisterPage: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-[#f34024] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">M</span>
+            <div className="w-10 h-10 bg-[#f34024] rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="assets/logo.png" alt="MOB Esports Logo" className="w-9 h-9 object-contain" />
             </div>
             <span className="text-white font-bold text-2xl">MOB ESPORTS ZONE</span>
           </div>

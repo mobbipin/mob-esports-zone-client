@@ -237,7 +237,7 @@ export const ClientTournamentsPage: React.FC = () => {
                 </div>
               </div>
               
-              <CardContent className="p-6">
+              <CardContent className="p-6"> 
                 <h3 className="text-xl font-bold text-white mb-3">{tournament.title}</h3>
                 
                 <div className="space-y-2 text-gray-400 text-sm mb-4">
@@ -250,11 +250,11 @@ export const ClientTournamentsPage: React.FC = () => {
                     <>
                       <div className="flex items-center">
                         <UsersIcon className="w-4 h-4 mr-2" />
-                        {tournament.participants}/{tournament.maxParticipants} participants
+                        {"participants" in tournament && "maxParticipants" in tournament ? `${tournament.participants}/${tournament.maxParticipants} participants` : null}
                       </div>
                       <div className="flex items-center">
                         <ClockIcon className="w-4 h-4 mr-2" />
-                        Register by {tournament.registrationDeadline}
+                        {"registrationDeadline" in tournament ? `Register by ${tournament.registrationDeadline}` : null}
                       </div>
                     </>
                   )}
@@ -263,11 +263,11 @@ export const ClientTournamentsPage: React.FC = () => {
                     <>
                       <div className="flex items-center">
                         <CheckCircleIcon className="w-4 h-4 mr-2 text-green-500" />
-                        Registered as {tournament.teamName}
+                        {"teamName" in tournament ? `Registered as ${tournament.teamName}` : null}
                       </div>
                       <div className="flex items-center">
                         <CalendarIcon className="w-4 h-4 mr-2" />
-                        Registered on {tournament.registrationDate}
+                        {"registrationDate" in tournament ? `Registered on ${tournament.registrationDate}` : null}
                       </div>
                     </>
                   )}
@@ -275,7 +275,7 @@ export const ClientTournamentsPage: React.FC = () => {
                   {activeTab === "past" && (
                     <div className="flex items-center">
                       <TrophyIcon className="w-4 h-4 mr-2 text-yellow-500" />
-                      {tournament.result} - Earned {tournament.earnings}
+                      {"result" in tournament && "earnings" in tournament ? `${tournament.result} - Earned ${tournament.earnings}` : null}
                     </div>
                   )}
                   
@@ -286,24 +286,28 @@ export const ClientTournamentsPage: React.FC = () => {
                 </div>
 
                 {/* Progress Bar for Available Tournaments */}
-                {activeTab === "available" && tournament.maxParticipants && (
-                  <div className="mb-4">
-                    <div className="flex justify-between text-xs text-gray-400 mb-1">
-                      <span>Registration Progress</span>
-                      <span>{Math.round((tournament.participants / tournament.maxParticipants) * 100)}%</span>
+                {activeTab === "available" &&
+                  "participants" in tournament &&
+                  "maxParticipants" in tournament &&
+                  typeof tournament.participants === "number" &&
+                  typeof tournament.maxParticipants === "number" && (
+                    <div className="mb-4">
+                      <div className="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>Registration Progress</span>
+                        <span>{Math.round((tournament.participants / tournament.maxParticipants) * 100)}%</span>
+                      </div>
+                      <div className="w-full bg-[#292932] rounded-full h-2">
+                        <div
+                          className="bg-[#f34024] h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${(tournament.participants / tournament.maxParticipants) * 100}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-[#292932] rounded-full h-2">
-                      <div 
-                        className="bg-[#f34024] h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(tournament.participants / tournament.maxParticipants) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
+                  )}
                 
                 <div className="flex space-x-2">
                   <Link to={`/tournaments/${tournament.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full border-[#292932] text-white hover:bg-[#292932]">
+                    <Button variant="outline" className="w-full border-[#292932] hover:text-white hover:bg-[#292932]">
                       View Details
                     </Button>
                   </Link>

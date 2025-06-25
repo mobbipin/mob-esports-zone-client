@@ -27,8 +27,8 @@ export const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-[#f34024] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">M</span>
+            <div className="w-8 h-8 bg-[#f34024] rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="assets/logo.png" alt="MOB Esports Logo" className="w-7 h-7 object-contain" />
             </div>
             <span className="text-white font-bold text-xl">MOB ESPORTS ZONE</span>
           </Link>

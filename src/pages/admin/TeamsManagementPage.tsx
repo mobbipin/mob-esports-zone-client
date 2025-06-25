@@ -373,7 +373,7 @@ export const TeamsManagementPage: React.FC = () => {
                 <Button 
                   size="sm" 
                   variant="outline"
-                  className="flex-1 border-[#292932] text-white hover:bg-[#292932]"
+                  className="flex-1 border-[#292932]  hover:bg-[#292932]"
                 >
                   <EditIcon className="w-3 h-3 mr-1" />
                   Edit
