@@ -233,7 +233,7 @@ export const ClientDashboard: React.FC = () => {
                 <p className="text-white/90 text-sm mb-4">
                   You've won 3 tournaments this month. Keep up the great work!
                 </p>
-                <Button variant="outline" className="border-white text-white hover:bg-white hover:text-[#f34024]">
+                <Button variant="outline" className=" hover:text-[#f34024]">
                   View Achievements
                 </Button>
               </CardContent>
