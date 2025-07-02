@@ -1,57 +1,28 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { CalendarIcon, UserIcon, ClockIcon, ArrowLeftIcon, ShareIcon, TagIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
+import { apiFetch } from "../../lib/api";
 
 export const NewsDetailPage: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
+  const [article, setArticle] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock article data - in real app, fetch based on ID
-  const article = {
-    id: 1,
-    title: "New Tournament Format Announced for 2025 Season",
-    content: `
-      <p>We're excited to announce a revolutionary new tournament format that will transform the competitive esports landscape for the 2025 season. After months of planning and community feedback, we've developed a system that ensures better balance, more exciting matches, and fairer competition for all participants.</p>
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    apiFetch<{ status: boolean; data: any }>(`/posts/${id}`)
+      .then(res => setArticle(res.data))
+      .catch(err => setError(typeof err === "string" ? err : "Failed to load article"))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-      <h2>What's New in the Format</h2>
-      <p>The new tournament structure introduces several key innovations:</p>
-      
-      <h3>Group Stage Evolution</h3>
-      <p>Our enhanced group stage system now features dynamic seeding based on recent performance metrics. Teams will be placed into groups that ensure competitive balance while maintaining the excitement of unpredictable matchups. Each group will consist of 8 teams, with the top 4 advancing to the knockout stages.</p>
-
-      <h3>Double Elimination Brackets</h3>
-      <p>We're implementing a double elimination system for the knockout rounds, giving teams a second chance to prove themselves. This format has been proven to produce more accurate results and provides additional opportunities for comeback stories that fans love.</p>
-
-      <h3>Wildcard Rounds</h3>
-      <p>New wildcard rounds will give exceptional performers from the group stages additional opportunities to advance. These special matches will be determined by community voting and performance analytics, adding an extra layer of excitement to the tournament progression.</p>
-
-      <h2>Community Impact</h2>
-      <p>This new format was developed with extensive input from our community. Over 10,000 players and fans participated in our feedback surveys, and their insights have been instrumental in shaping these changes. The format addresses the most common concerns about fairness and excitement in competitive play.</p>
-
-      <h3>Enhanced Viewing Experience</h3>
-      <p>For spectators, the new format means more meaningful matches throughout the tournament. Every game will have significant implications, and the extended format allows for better storytelling and more opportunities for underdog victories.</p>
-
-      <h2>Implementation Timeline</h2>
-      <p>The new format will be gradually rolled out starting with our February tournaments. We'll begin with smaller events to test and refine the system before implementing it in our major championships. Player feedback during this transition period will be crucial for final adjustments.</p>
-
-      <h3>Training and Preparation</h3>
-      <p>To help teams prepare for the new format, we're providing comprehensive guides and hosting practice tournaments. These resources will ensure that all participants can adapt to the changes and compete at their highest level.</p>
-
-      <h2>Looking Forward</h2>
-      <p>This format represents our commitment to evolving with the esports community and providing the best possible competitive experience. We believe these changes will elevate the quality of competition and create more memorable moments for players and fans alike.</p>
-
-      <p>Stay tuned for more detailed information about specific tournament implementations and registration details for upcoming events under the new format.</p>
-    `,
-    author: "Admin Team",
-    authorAvatar: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1",
-    date: "Jan 10, 2025",
-    readTime: "8 min read",
-    tags: ["Tournament", "Announcement", "Format", "2025"],
-    image: "https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
-    views: 1247,
-    likes: 89
-  };
+  if (loading) return <div className="text-center text-white">Loading article...</div>;
+  if (error) return <div className="text-center text-red-500">{error}</div>;
+  if (!article) return null;
 
   const relatedArticles = [
     {
@@ -90,7 +61,7 @@ export const NewsDetailPage: React.FC = () => {
         <div className="mb-8">
           <div className="relative h-64 md:h-80 rounded-lg overflow-hidden mb-6">
             <img 
-              src={article.image} 
+              src={article.imageUrl || article.image || "https://via.placeholder.com/800x400"} 
               alt={article.title}
               className="w-full h-full object-cover"
             />
@@ -98,7 +69,7 @@ export const NewsDetailPage: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            {article.tags.map((tag) => (
+            {(article.tags || []).map((tag: string) => (
               <span key={tag} className="px-3 py-1 bg-[#f34024] text-white text-sm font-medium rounded-full">
                 <TagIcon className="w-3 h-3 inline mr-1" />
                 {tag}
@@ -114,29 +85,28 @@ export const NewsDetailPage: React.FC = () => {
             <div className="flex items-center space-x-6">
               <div className="flex items-center">
                 <img 
-                  src={article.authorAvatar} 
-                  alt={article.author}
+                  src={article.authorAvatar || "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1"} 
+                  alt={article.author || "Admin"}
                   className="w-10 h-10 rounded-full mr-3"
                 />
                 <div>
-                  <div className="text-white font-medium">{article.author}</div>
+                  <div className="text-white font-medium">{article.author || "Admin"}</div>
                   <div className="text-gray-400 text-sm">Author</div>
                 </div>
               </div>
               
               <div className="flex items-center text-gray-400 text-sm">
                 <CalendarIcon className="w-4 h-4 mr-2" />
-                {article.date}
+                {article.createdAt ? new Date(article.createdAt).toLocaleDateString() : "TBA"}
               </div>
               
               <div className="flex items-center text-gray-400 text-sm">
                 <ClockIcon className="w-4 h-4 mr-2" />
-                {article.readTime}
+                {article.readTime || ""}
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
-              <span className="text-gray-400 text-sm">{article.views} views</span>
               <Button variant="outline" size="sm" className="border-[#292932] text-white hover:bg-[#292932]">
                 <ShareIcon className="w-4 h-4 mr-2" />
                 Share
@@ -155,13 +125,7 @@ export const NewsDetailPage: React.FC = () => {
                 lineHeight: '1.8'
               }}
               dangerouslySetInnerHTML={{ 
-                __html: article.content.replace(
-                  /<h2>/g, '<h2 style="color: white; font-size: 1.5rem; font-weight: bold; margin: 2rem 0 1rem 0;">'
-                ).replace(
-                  /<h3>/g, '<h3 style="color: #f34024; font-size: 1.25rem; font-weight: bold; margin: 1.5rem 0 0.75rem 0;">'
-                ).replace(
-                  /<p>/g, '<p style="margin-bottom: 1.5rem; color: #d1d5db;">'
-                )
+                __html: article.content || ""
               }}
             />
           </CardContent>

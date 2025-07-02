@@ -1,167 +1,101 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { PlusIcon, SearchIcon, FilterIcon, CalendarIcon, UsersIcon, TrophyIcon, EditIcon, TrashIcon, SettingsIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
+import { apiFetch } from "../../lib/api";
 
 export const AdminTournamentsPage: React.FC = () => {
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [tournaments, setTournaments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 9;
 
-  const tournaments = [
-    {
-      id: 1,
-      title: "PUBG Mobile Championship",
-      description: "The ultimate battle royale tournament with the best players from around the world.",
-      date: "Jan 15 - Jan 17, 2025",
-      startDate: "2025-01-15",
-      participants: 96,
-      maxParticipants: 128,
-      prize: "$10,000",
-      status: "Registration Open",
-      type: "Squad",
-      game: "PUBG Mobile",
-      organizer: "Admin Team",
-      created: "Dec 20, 2024",
-      registrationDeadline: "Jan 12, 2025",
-      image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 2,
-      title: "Valorant Pro League",
-      description: "Professional Valorant tournament featuring top-tier teams competing for glory.",
-      date: "Jan 20 - Jan 22, 2025",
-      startDate: "2025-01-20",
-      participants: 32,
-      maxParticipants: 64,
-      prize: "$15,000",
-      status: "Registration Open",
-      type: "Team",
-      game: "Valorant",
-      organizer: "Tournament Director",
-      created: "Dec 18, 2024",
-      registrationDeadline: "Jan 17, 2025",
-      image: "https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 3,
-      title: "Mobile Legends Tournament",
-      description: "Fast-paced MOBA action with teams battling for supremacy.",
-      date: "Jan 25 - Jan 27, 2025",
-      startDate: "2025-01-25",
-      participants: 96,
-      maxParticipants: 96,
-      prize: "$8,000",
-      status: "Full",
-      type: "Team",
-      game: "Mobile Legends",
-      organizer: "Admin Team",
-      created: "Dec 15, 2024",
-      registrationDeadline: "Jan 22, 2025",
-      image: "https://images.pexels.com/photos/194511/pexels-photo-194511.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 4,
-      title: "Free Fire Solo Championship",
-      description: "Individual skill tournament where only the best survive.",
-      date: "Feb 1 - Feb 3, 2025",
-      startDate: "2025-02-01",
-      participants: 0,
-      maxParticipants: 200,
-      prize: "$5,000",
-      status: "Draft",
-      type: "Solo",
-      game: "Free Fire",
-      organizer: "Community Manager",
-      created: "Dec 25, 2024",
-      registrationDeadline: "Jan 28, 2025",
-      image: "https://images.pexels.com/photos/3945313/pexels-photo-3945313.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 5,
-      title: "COD Mobile Winter Cup",
-      description: "Intense battles in the ultimate mobile FPS experience.",
-      date: "Dec 15 - Dec 17, 2024",
-      startDate: "2024-12-15",
-      participants: 64,
-      maxParticipants: 64,
-      prize: "$12,000",
-      status: "Completed",
-      type: "Duo",
-      game: "COD Mobile",
-      organizer: "Tournament Director",
-      created: "Nov 20, 2024",
-      registrationDeadline: "Dec 12, 2024",
-      image: "https://images.pexels.com/photos/3829227/pexels-photo-3829227.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 6,
-      title: "Clash Royale Masters",
-      description: "Strategic card battles with the most skilled players.",
-      date: "Jan 12 - Jan 14, 2025",
-      startDate: "2025-01-12",
-      participants: 64,
-      maxParticipants: 64,
-      prize: "$3,000",
-      status: "Ongoing",
-      type: "Solo",
-      game: "Clash Royale",
-      organizer: "Admin Team",
-      created: "Dec 10, 2024",
-      registrationDeadline: "Jan 9, 2025",
-      image: "https://images.pexels.com/photos/163064/play-stone-network-networked-interactive-163064.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    }
-  ];
-
-  const filteredTournaments = tournaments.filter(tournament => {
-    const matchesSearch = tournament.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tournament.game.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || tournament.status.toLowerCase().includes(statusFilter.toLowerCase());
-    const matchesType = typeFilter === "all" || tournament.type.toLowerCase() === typeFilter.toLowerCase();
-    
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  const handleDeleteTournament = (tournamentId: number, tournamentTitle: string) => {
-    if (confirm(`Are you sure you want to delete "${tournamentTitle}"? This action cannot be undone.`)) {
-      addToast(`Tournament "${tournamentTitle}" has been deleted`, "success");
+  const fetchTournaments = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let query = `/tournaments?admin=true&page=${page}&limit=${limit}`;
+      if (statusFilter !== "all") query += `&status=${statusFilter}`;
+      if (searchTerm) query += `&search=${encodeURIComponent(searchTerm)}`;
+      // typeFilter can be used if API supports
+      const res = await apiFetch<any>(query);
+      setTournaments(res.data || []);
+      setTotal(res.total || res.data?.length || 0);
+    } catch (err: any) {
+      setError(typeof err === "string" ? err : "Failed to load tournaments");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCancelTournament = (tournamentId: number, tournamentTitle: string) => {
+  useEffect(() => {
+    fetchTournaments();
+    // eslint-disable-next-line
+  }, [page, statusFilter, searchTerm]);
+
+  const handleDeleteTournament = async (tournamentId: string, tournamentTitle: string) => {
+    if (confirm(`Are you sure you want to delete "${tournamentTitle}"? This action cannot be undone.`)) {
+      try {
+        await apiFetch(`/tournaments/${tournamentId}`, { method: "DELETE" });
+        addToast(`Tournament "${tournamentTitle}" has been deleted`, "success");
+        fetchTournaments();
+      } catch (err: any) {
+        addToast(err?.toString() || "Failed to delete tournament", "error");
+      }
+    }
+  };
+
+  const handleCancelTournament = async (tournamentId: string, tournamentTitle: string) => {
     if (confirm(`Are you sure you want to cancel "${tournamentTitle}"? All registered participants will be notified.`)) {
-      addToast(`Tournament "${tournamentTitle}" has been cancelled`, "info");
+      try {
+        await apiFetch(`/tournaments/${tournamentId}`, {
+          method: "PUT",
+          body: JSON.stringify({ status: "cancelled" })
+        });
+        addToast(`Tournament "${tournamentTitle}" has been cancelled`, "info");
+        fetchTournaments();
+      } catch (err: any) {
+        addToast(err?.toString() || "Failed to cancel tournament", "error");
+      }
     }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Registration Open":
+    switch (status?.toLowerCase()) {
+      case "registration open":
+      case "registration":
         return "bg-green-600";
-      case "Full":
+      case "full":
         return "bg-blue-600";
-      case "Ongoing":
+      case "ongoing":
         return "bg-purple-600";
-      case "Completed":
+      case "completed":
         return "bg-gray-600";
-      case "Draft":
+      case "draft":
         return "bg-yellow-600";
-      case "Cancelled":
+      case "cancelled":
         return "bg-red-600";
       default:
         return "bg-gray-600";
     }
   };
 
+  // Stats calculation
   const stats = [
-    { label: "Total Tournaments", value: tournaments.length, color: "text-white" },
-    { label: "Active", value: tournaments.filter(t => t.status === "Registration Open" || t.status === "Ongoing").length, color: "text-green-500" },
-    { label: "Completed", value: tournaments.filter(t => t.status === "Completed").length, color: "text-blue-500" },
-    { label: "Total Prize Pool", value: `$${tournaments.reduce((sum, t) => sum + parseInt(t.prize.replace(/[$,]/g, '')), 0).toLocaleString()}`, color: "text-[#f34024]" }
+    { label: "Total Tournaments", value: total, color: "text-white" },
+    { label: "Active", value: tournaments.filter(t => ["registration", "ongoing", "registration open"].includes((t.status||"").toLowerCase())).length, color: "text-green-500" },
+    { label: "Completed", value: tournaments.filter(t => (t.status||"").toLowerCase() === "completed").length, color: "text-blue-500" },
+    { label: "Total Prize Pool", value: `$${tournaments.reduce((sum, t) => sum + (t.prizePool || t.prize || 0), 0).toLocaleString()}`, color: "text-[#f34024]" }
   ];
 
   return (
@@ -199,7 +133,6 @@ export const AdminTournamentsPage: React.FC = () => {
             <FilterIcon className="w-5 h-5 text-white" />
             <h2 className="text-lg font-semibold text-white">Filter Tournaments</h2>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -211,7 +144,6 @@ export const AdminTournamentsPage: React.FC = () => {
                 className="pl-10 bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
               />
             </div>
-            
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -225,7 +157,6 @@ export const AdminTournamentsPage: React.FC = () => {
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
-            
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
@@ -242,147 +173,131 @@ export const AdminTournamentsPage: React.FC = () => {
       </Card>
 
       {/* Tournaments Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredTournaments.map((tournament) => (
-          <Card key={tournament.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
-            <div className="relative">
-              <img 
-                src={tournament.image} 
-                alt={tournament.title}
-                className="w-full h-40 object-cover"
-              />
-              <div className="absolute top-4 left-4">
-                <span className="px-2 py-1 bg-[#19191d]/80 text-white text-xs font-semibold rounded">
-                  {tournament.game}
-                </span>
-              </div>
-              <div className="absolute top-4 right-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(tournament.status)}`}>
-                  {tournament.status}
-                </span>
-              </div>
-              <div className="absolute bottom-4 left-4">
-                <span className="px-2 py-1 bg-[#f34024] text-white text-xs font-semibold rounded">
-                  {tournament.type}
-                </span>
-              </div>
-            </div>
-            
-            <CardContent className="p-6">
-              <h3 className="text-lg font-bold text-white mb-2">{tournament.title}</h3>
-              <p className="text-gray-400 text-sm mb-4 line-clamp-2">{tournament.description}</p>
-              
-              <div className="space-y-2 text-gray-400 text-sm mb-4">
-                <div className="flex items-center">
-                  <CalendarIcon className="w-4 h-4 mr-2" />
-                  {tournament.date}
+      {loading ? (
+        <div className="text-center py-12 text-gray-400">Loading tournaments...</div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-500">{error}</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {tournaments.map((tournament) => (
+            <Card key={tournament.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
+              <div className="relative">
+                <img 
+                  src={tournament.bannerUrl || tournament.image || "/assets/logo.png"} 
+                  alt={tournament.name || tournament.title}
+                  className="w-full h-40 object-cover"
+                />
+                <div className="absolute top-4 left-4">
+                  <span className="px-2 py-1 bg-[#19191d]/80 text-white text-xs font-semibold rounded">
+                    {tournament.game}
+                  </span>
                 </div>
-                <div className="flex items-center">
-                  <UsersIcon className="w-4 h-4 mr-2" />
-                  {tournament.participants}/{tournament.maxParticipants} participants
+                <div className="absolute top-4 right-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(tournament.status)}`}>
+                    {tournament.status}
+                  </span>
                 </div>
-                <div className="flex items-center">
-                  <TrophyIcon className="w-4 h-4 mr-2" />
-                  {tournament.prize} prize pool
+                <div className="absolute bottom-4 left-4">
+                  <span className="px-2 py-1 bg-[#f34024] text-white text-xs font-semibold rounded">
+                    {tournament.type}
+                  </span>
                 </div>
               </div>
-
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span>Registration Progress</span>
-                  <span>{Math.round((tournament.participants / tournament.maxParticipants) * 100)}%</span>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold text-white mb-2">{tournament.name || tournament.title}</h3>
+                <p className="text-gray-400 text-sm mb-4 line-clamp-2">{tournament.description}</p>
+                <div className="space-y-2 text-gray-400 text-sm mb-4">
+                  <div className="flex items-center">
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    {tournament.startDate ? new Date(tournament.startDate).toLocaleDateString() : "-"} - {tournament.endDate ? new Date(tournament.endDate).toLocaleDateString() : "-"}
+                  </div>
+                  <div className="flex items-center">
+                    <UsersIcon className="w-4 h-4 mr-2" />
+                    {tournament.teams?.length || tournament.participants || 0}/{tournament.maxTeams || tournament.maxParticipants || 0} participants
+                  </div>
+                  <div className="flex items-center">
+                    <TrophyIcon className="w-4 h-4 mr-2" />
+                    {tournament.prizePool ? `$${tournament.prizePool}` : tournament.prize || "-"} prize pool
+                  </div>
                 </div>
-                <div className="w-full bg-[#292932] rounded-full h-2">
-                  <div 
-                    className="bg-[#f34024] h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(tournament.participants / tournament.maxParticipants) * 100}%` }}
-                  ></div>
+                {/* Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Registration Progress</span>
+                    <span>{tournament.maxTeams || tournament.maxParticipants ? Math.round(((tournament.teams?.length || tournament.participants || 0) / (tournament.maxTeams || tournament.maxParticipants)) * 100) : 0}%</span>
+                  </div>
+                  <div className="w-full bg-[#292932] rounded-full h-2">
+                    <div 
+                      className="bg-[#f34024] h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${tournament.maxTeams || tournament.maxParticipants ? ((tournament.teams?.length || tournament.participants || 0) / (tournament.maxTeams || tournament.maxParticipants)) * 100 : 0}%` }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
-
-              {/* Tournament Info */}
-              <div className="text-xs text-gray-500 mb-4">
-                <div>Organizer: {tournament.organizer}</div>
-                <div>Created: {tournament.created}</div>
-                <div>Registration Deadline: {tournament.registrationDeadline}</div>
-              </div>
-              
-              {/* Actions */}
-              <div className="flex flex-wrap gap-2">
-                <Link to={`/tournaments/${tournament.id}`} className="flex-1">
-                  <Button size="sm" variant="outline" className="w-full border-[#292932] hover:bg-[#292932]">
-                    View
-                  </Button>
-                </Link>
-                
-                <Link to={`/admin/tournaments/${tournament.id}/bracket`}>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <SettingsIcon className="w-3 h-3 mr-1" />
-                    Bracket
-                  </Button>
-                </Link>
-                
-                <Button 
-                  size="sm"
-                  variant="outline"
-                  className="border-[#292932] hover:text-white hover:bg-[#292932]"
-                >
-                  <EditIcon className="w-3 h-3 mr-1" />
-                  Edit
-                </Button>
-                
-                {tournament.status === "Registration Open" && (
+                {/* Tournament Info */}
+                <div className="text-xs text-gray-500 mb-4">
+                  <div>Organizer: {tournament.createdBy || "-"}</div>
+                  <div>Created: {tournament.createdAt ? new Date(tournament.createdAt).toLocaleDateString() : "-"}</div>
+                  <div>Registration Deadline: {tournament.registrationDeadline ? new Date(tournament.registrationDeadline).toLocaleDateString() : "-"}</div>
+                </div>
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2">
+                  <Link to={`/tournaments/${tournament.id}`} className="flex-1">
+                    <Button size="sm" variant="outline" className="w-full border-[#292932] hover:bg-[#292932]">
+                      View
+                    </Button>
+                  </Link>
+                  <Link to={`/admin/tournaments/${tournament.id}/bracket`}>
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <SettingsIcon className="w-3 h-3 mr-1" />
+                      Bracket
+                    </Button>
+                  </Link>
                   <Button 
                     size="sm"
-                    onClick={() => handleCancelTournament(tournament.id, tournament.title)}
                     variant="outline"
-                    className="border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-white"
+                    className="border-[#292932] hover:text-white hover:bg-[#292932]"
+                    onClick={() => navigate(`/admin/tournaments/${tournament.id}/edit`)}
                   >
-                    Cancel
+                    <EditIcon className="w-3 h-3 mr-1" />
+                    Edit
                   </Button>
-                )}
-                
-                {(tournament.status === "Draft" || tournament.status === "Cancelled") && (
-                  <Button 
-                    size="sm"
-                    onClick={() => handleDeleteTournament(tournament.id, tournament.title)}
-                    variant="outline"
-                    className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                  >
-                    <TrashIcon className="w-3 h-3 mr-1" />
-                    Delete
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredTournaments.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-400 text-lg mb-4">No tournaments found</div>
-          <p className="text-gray-500 mb-6">Try adjusting your filters or create a new tournament</p>
-          <Link to="/admin/tournaments/create">
-            <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Create Tournament
-            </Button>
-          </Link>
+                  {(tournament.status === "registration" || tournament.status === "Registration Open") && (
+                    <Button 
+                      size="sm"
+                      onClick={() => handleCancelTournament(tournament.id, tournament.name || tournament.title)}
+                      variant="outline"
+                      className="border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-white"
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  {(tournament.status === "draft" || tournament.status === "cancelled" || tournament.status === "Draft" || tournament.status === "Cancelled") && (
+                    <Button 
+                      size="sm"
+                      onClick={() => handleDeleteTournament(tournament.id, tournament.name || tournament.title)}
+                      variant="outline"
+                      className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                    >
+                      <TrashIcon className="w-3 h-3 mr-1" />
+                      Delete
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
-
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-6">
         <div className="text-gray-400 text-sm">
-          Showing {filteredTournaments.length} of {tournaments.length} tournaments
+          Showing {tournaments.length} of {total} tournaments
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]" disabled={page === 1} onClick={() => setPage(page - 1)}>
             Previous
           </Button>
-          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
+          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]" disabled={tournaments.length < limit} onClick={() => setPage(page + 1)}>
             Next
           </Button>
         </div>

@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CameraIcon, SaveIcon, UserIcon, GamepadIcon, MapPinIcon, TrophyIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
+import { apiFetch, apiUpload } from "../../lib/api";
 
 export const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -18,6 +19,31 @@ export const ProfilePage: React.FC = () => {
     bio: user?.bio || "",
     rank: user?.rank || ""
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
+
+  useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    apiFetch<{ status: boolean; data: any }>(`/players/${user.id}`)
+      .then(res => {
+        setFormData({
+          username: user.username,
+          email: user.email,
+          gameUsername: res.data.gameId || "",
+          region: res.data.region || "",
+          bio: res.data.bio || "",
+          rank: res.data.rank || ""
+        });
+      })
+      .catch(err => setError(typeof err === "string" ? err : "Failed to load profile"))
+      .finally(() => setLoading(false));
+  }, [user?.id, user?.username, user?.email]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -45,6 +71,29 @@ export const ProfilePage: React.FC = () => {
     setIsEditing(false);
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/avatar", formData);
+      setAvatarUrl(res.data.url);
+      addToast("Avatar uploaded!", "success");
+      // Update user profile with new avatar
+      await apiFetch(`/players/${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ avatar: res.data.url })
+      });
+      updateUser({ avatar: res.data.url });
+    } catch (err: any) {
+      addToast(err?.toString() || "Failed to upload avatar", "error");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const achievements = [
     { id: 1, title: "First Victory", description: "Won your first tournament", icon: "🏆", earned: true },
     { id: 2, title: "Team Player", description: "Joined a team", icon: "👥", earned: true },
@@ -64,6 +113,9 @@ export const ProfilePage: React.FC = () => {
 
   const regions = ["NA", "EU", "ASIA", "OCE", "SA", "AF"];
   const ranks = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"];
+
+  if (loading) return <div className="text-center text-white">Loading profile...</div>;
+  if (error) return <div className="text-center text-red-500">{error}</div>;
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
@@ -111,14 +163,18 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex items-center space-x-6 mb-8">
                   <div className="relative">
                     <img 
-                      src={user?.avatar || "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"} 
+                      src={avatarUrl || user?.avatar || "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"} 
                       alt="Profile"
                       className="w-20 h-20 rounded-full object-cover"
                     />
                     {isEditing && (
-                      <button className="absolute bottom-0 right-0 w-6 h-6 bg-[#f34024] rounded-full flex items-center justify-center">
-                        <CameraIcon className="w-3 h-3 text-white" />
-                      </button>
+                      <>
+                        <label className="absolute bottom-0 right-0 w-6 h-6 bg-[#f34024] rounded-full flex items-center justify-center cursor-pointer">
+                          <CameraIcon className="w-3 h-3 text-white" />
+                          <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={avatarUploading} />
+                        </label>
+                        {avatarUploading && <span className="absolute -bottom-6 right-0 text-xs text-yellow-500">Uploading...</span>}
+                      </>
                     )}
                   </div>
                   <div>

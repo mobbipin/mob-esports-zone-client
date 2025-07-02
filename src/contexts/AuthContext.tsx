@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { apiFetch } from "../lib/api";
 
 export interface User {
   id: string;
@@ -17,7 +18,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: Partial<User> & { password: string }) => Promise<void>;
+  register: (userData: Partial<User> & { password: string; adminCode?: string; displayName?: string }) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
 }
@@ -41,60 +42,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate checking for existing session
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    // Check for existing token and fetch user profile
+    const token = localStorage.getItem("token");
+    if (token) {
+      apiFetch<{ status: boolean; data: User }>("/auth/me")
+        .then((res) => setUser(res.data))
+        .catch(() => {
+          setUser(null);
+          localStorage.removeItem("token");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data based on email
-      const mockUser: User = {
-        id: "1",
-        username: email.includes("admin") ? "admin" : "player1",
-        email,
-        role: email.includes("admin") ? "admin" : "player",
-        avatar: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1",
-        gameUsername: email.includes("admin") ? undefined : "ProGamer123",
-        region: email.includes("admin") ? undefined : "NA",
-        bio: email.includes("admin") ? undefined : "Competitive esports player",
-        rank: email.includes("admin") ? undefined : "Diamond",
-      };
-
-      setUser(mockUser);
-      localStorage.setItem("user", JSON.stringify(mockUser));
+      const res = await apiFetch<{
+        status: boolean;
+        data: { token: string; user: User };
+      }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      localStorage.setItem("token", res.data.token);
+      setUser(res.data.user);
     } catch (error) {
-      throw new Error("Login failed");
+      throw new Error(typeof error === "string" ? error : "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (userData: Partial<User> & { password: string }) => {
+  const register = async (userData: Partial<User> & { password: string; adminCode?: string; displayName?: string }) => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newUser: User = {
-        id: Date.now().toString(),
-        username: userData.username || "",
-        email: userData.email || "",
-        role: userData.role || "player",
-        avatar: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1",
-      };
-
-      setUser(newUser);
-      localStorage.setItem("user", JSON.stringify(newUser));
+      await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify(userData),
+      });
+      // Optionally, auto-login after registration
+      await login(userData.email || "", userData.password);
     } catch (error) {
-      throw new Error("Registration failed");
+      throw new Error(typeof error === "string" ? error : "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -102,14 +94,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setLoading(true);
+      try {
+        // Update user profile (player)
+        await apiFetch(`/players/${user.id}`, {
+          method: "PUT",
+          body: JSON.stringify(userData),
+        });
+        // Refetch user profile
+        const res = await apiFetch<{ status: boolean; data: User }>("/auth/me");
+        setUser(res.data);
+      } catch (error) {
+        throw new Error(typeof error === "string" ? error : "Update failed");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 

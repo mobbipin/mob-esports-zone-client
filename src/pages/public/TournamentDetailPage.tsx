@@ -1,78 +1,66 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { CalendarIcon, UsersIcon, TrophyIcon, MapPinIcon, ClockIcon, ArrowLeftIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
+import { apiFetch } from "../../lib/api";
 
 export const TournamentDetailPage: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { addToast } = useToast();
+  const [tournament, setTournament] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [registering, setRegistering] = useState(false);
 
-  // Mock tournament data - in real app, fetch based on ID
-  const tournament = {
-    id: 1,
-    title: "PUBG Mobile Championship",
-    description: "The ultimate battle royale tournament featuring the best players from around the world. This championship will test your skills, strategy, and teamwork in intense matches across multiple maps. Only the strongest will survive to claim the crown.",
-    longDescription: "Join us for the most competitive PUBG Mobile tournament of the year. This championship features a unique format with group stages, knockout rounds, and a grand finale that will determine the ultimate champion. Players will compete across classic maps including Erangel, Miramar, and Sanhok, with special tournament rules to ensure fair play and maximum excitement.",
-    date: "Jan 15 - Jan 17, 2025",
-    startTime: "10:00 AM EST",
-    participants: 128,
-    maxParticipants: 128,
-    prize: "$10,000",
-    status: "Registration Open",
-    type: "Squad",
-    game: "PUBG Mobile",
-    format: "Battle Royale",
-    platform: "Mobile",
-    region: "Global",
-    organizer: "MOB Esports Zone",
-    image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
-    rules: [
-      "Teams must consist of 4 players",
-      "All matches will be played on official tournament servers",
-      "Use of cheats or exploits will result in immediate disqualification",
-      "Players must be present 15 minutes before match time",
-      "Tournament officials' decisions are final"
-    ],
-    prizeDistribution: [
-      { position: "1st Place", prize: "$5,000", percentage: 50 },
-      { position: "2nd Place", prize: "$2,500", percentage: 25 },
-      { position: "3rd Place", prize: "$1,500", percentage: 15 },
-      { position: "4th-8th Place", prize: "$250 each", percentage: 10 }
-    ],
-    schedule: [
-      { date: "Jan 15", time: "10:00 AM", event: "Group Stage - Round 1" },
-      { date: "Jan 15", time: "2:00 PM", event: "Group Stage - Round 2" },
-      { date: "Jan 16", time: "10:00 AM", event: "Knockout Stage - Quarterfinals" },
-      { date: "Jan 16", time: "2:00 PM", event: "Knockout Stage - Semifinals" },
-      { date: "Jan 17", time: "12:00 PM", event: "Grand Finals" }
-    ]
-  };
-
-  const registeredTeams = [
-    { id: 1, name: "Team Alpha", members: 4, captain: "ProGamer123", avatar: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { id: 2, name: "Elite Squad", members: 4, captain: "EsportsKing", avatar: "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { id: 3, name: "Victory Legends", members: 4, captain: "GameMaster", avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { id: 4, name: "Phoenix Rising", members: 4, captain: "PixelWarrior", avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { id: 5, name: "Storm Breakers", members: 4, captain: "CyberNinja", avatar: "https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { id: 6, name: "Apex Hunters", members: 4, captain: "ShadowStrike", avatar: "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" }
-  ];
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`)
+      .then(res => setTournament(res.data))
+      .catch(err => setError(typeof err === "string" ? err : "Failed to load tournament"))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Registration Open":
+      case "registration":
         return "bg-green-600";
-      case "Coming Soon":
+      case "coming":
         return "bg-yellow-600";
-      case "Ongoing":
+      case "ongoing":
         return "bg-blue-600";
-      case "Full":
+      case "full":
         return "bg-red-600";
       default:
         return "bg-gray-600";
     }
   };
+
+  // Team registration handler
+  const handleRegisterTeam = async () => {
+    if (!user?.teamId || !id) return;
+    setRegistering(true);
+    try {
+      await apiFetch(`/tournaments/${id}/register`, {
+        method: "POST",
+        body: JSON.stringify({ teamId: user.teamId })
+      });
+      addToast("Team registered for tournament!", "success");
+      // Optionally refetch tournament data
+    } catch (err: any) {
+      addToast(err?.toString() || "Failed to register team", "error");
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  if (loading) return <div className="text-center text-white">Loading tournament...</div>;
+  if (error) return <div className="text-center text-red-500">{error}</div>;
+  if (!tournament) return null;
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
@@ -87,8 +75,8 @@ export const TournamentDetailPage: React.FC = () => {
         <div className="relative mb-8">
           <div className="relative h-64 md:h-80 rounded-lg overflow-hidden">
             <img 
-              src={tournament.image} 
-              alt={tournament.title}
+              src={tournament.bannerUrl || tournament.imageUrl || tournament.image || "https://via.placeholder.com/800x400"} 
+              alt={tournament.name}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black bg-opacity-50"></div>
@@ -104,7 +92,7 @@ export const TournamentDetailPage: React.FC = () => {
                   {tournament.status}
                 </span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{tournament.title}</h1>
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{tournament.name}</h1>
               <p className="text-lg text-gray-200">{tournament.description}</p>
             </div>
           </div>
@@ -186,7 +174,7 @@ export const TournamentDetailPage: React.FC = () => {
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Tournament Rules</h2>
                 <ul className="space-y-3">
-                  {tournament.rules.map((rule, index) => (
+                  {tournament.rules.map((rule: any, index: number) => (
                     <li key={index} className="flex items-start text-gray-300">
                       <span className="w-6 h-6 bg-[#f34024] text-white text-sm font-bold rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
                         {index + 1}
@@ -203,7 +191,7 @@ export const TournamentDetailPage: React.FC = () => {
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Tournament Schedule</h2>
                 <div className="space-y-4">
-                  {tournament.schedule.map((item, index) => (
+                  {tournament.schedule.map((item: any, index: number) => (
                     <div key={index} className="flex items-center p-4 bg-[#19191d] rounded-lg">
                       <div className="text-center mr-4">
                         <div className="text-[#f34024] font-bold text-sm">{item.date}</div>
@@ -225,6 +213,18 @@ export const TournamentDetailPage: React.FC = () => {
             <Card className="bg-[#15151a] border-[#292932]">
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Registration</h3>
+                {/* Registration Button */}
+                {user ? (
+                  user.teamId ? (
+                    <Button onClick={handleRegisterTeam} disabled={registering} className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white mb-2">
+                      {registering ? "Registering..." : "Register Team"}
+                    </Button>
+                  ) : (
+                    <div className="text-gray-400 mb-2">You must be part of a team to register.</div>
+                  )
+                ) : (
+                  <div className="text-gray-400 mb-2">Login to register your team.</div>
+                )}
                 
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-gray-400 mb-2">
@@ -239,27 +239,11 @@ export const TournamentDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                {user ? (
-                  <div className="space-y-3">
-                    <Button className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-                      Register Team
-                    </Button>
-                    <Button variant="outline" className="w-full border-[#292932 hover:bg-[#292932] hover:text-white">
-                      Join Discord
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Link to="/login">
-                      <Button className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-                        Login to Register
-                      </Button>
-                    </Link>
-                    <p className="text-xs text-gray-400 text-center">
-                      You need to be logged in to register for tournaments
-                    </p>
-                  </div>
-                )}
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full border-[#292932 hover:bg-[#292932] hover:text-white">
+                    Join Discord
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -268,10 +252,10 @@ export const TournamentDetailPage: React.FC = () => {
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Prize Distribution</h3>
                 <div className="space-y-3">
-                  {tournament.prizeDistribution.map((prize, index) => (
-                    <div key={index} className="flex justify-between items-center p-3 bg-[#19191d] rounded-lg">
-                      <span className="text-gray-300 font-medium">{prize.position}</span>
-                      <span className="text-[#f34024] font-bold">{prize.prize}</span>
+                  {tournament.prizes.map((prize: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <span className="text-gray-300">{prize.position}</span>
+                      <span className="text-[#f34024] font-bold">{prize.amount}</span>
                     </div>
                   ))}
                 </div>
@@ -283,20 +267,14 @@ export const TournamentDetailPage: React.FC = () => {
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Registered Teams</h3>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {registeredTeams.map((team) => (
-                    <div key={team.id} className="flex items-center p-3 bg-[#19191d] rounded-lg">
+                  {tournament.registeredTeams.map((team: any) => (
+                    <div key={team.id} className="flex items-center space-x-3 mb-2">
                       <img 
                         src={team.avatar} 
-                        alt={team.captain}
-                        className="w-8 h-8 rounded-full mr-3"
+                        alt={team.name}
+                        className="w-8 h-8 rounded-full object-cover"
                       />
-                      <div className="flex-1">
-                        <div className="text-white font-medium text-sm">{team.name}</div>
-                        <div className="text-gray-400 text-xs">Captain: {team.captain}</div>
-                      </div>
-                      <div className="text-[#f34024] text-xs font-medium">
-                        {team.members}/4
-                      </div>
+                      <span className="text-white font-medium">{team.name}</span>
                     </div>
                   ))}
                 </div>

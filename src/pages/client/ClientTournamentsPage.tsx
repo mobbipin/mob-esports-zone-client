@@ -1,100 +1,62 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { CalendarIcon, UsersIcon, TrophyIcon, FilterIcon, CheckCircleIcon, ClockIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../../contexts/ToastContext";
+import { apiFetch } from "../../lib/api";
 
 export const ClientTournamentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("available");
+  const { user } = useAuth();
+  const { addToast } = useToast();
+  const [availableTournaments, setAvailableTournaments] = useState<any[]>([]);
+  const [registeredTournaments, setRegisteredTournaments] = useState<any[]>([]);
+  const [pastTournaments, setPastTournaments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [registeringId, setRegisteringId] = useState<string | null>(null);
 
-  const availableTournaments = [
-    {
-      id: 1,
-      title: "PUBG Mobile Championship",
-      date: "Jan 15 - Jan 17, 2025",
-      participants: 96,
-      maxParticipants: 128,
-      prize: "$10,000",
-      status: "Registration Open",
-      type: "Squad",
-      game: "PUBG Mobile",
-      registrationDeadline: "Jan 12, 2025",
-      image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 2,
-      title: "Valorant Pro League",
-      date: "Jan 20 - Jan 22, 2025",
-      participants: 32,
-      maxParticipants: 64,
-      prize: "$15,000",
-      status: "Registration Open",
-      type: "Team",
-      game: "Valorant",
-      registrationDeadline: "Jan 17, 2025",
-      image: "https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 4,
-      title: "Free Fire Solo Championship",
-      date: "Feb 1 - Feb 3, 2025",
-      participants: 0,
-      maxParticipants: 200,
-      prize: "$5,000",
-      status: "Coming Soon",
-      type: "Solo",
-      game: "Free Fire",
-      registrationDeadline: "Jan 28, 2025",
-      image: "https://images.pexels.com/photos/3945313/pexels-photo-3945313.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    }
-  ];
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      apiFetch<any>(`/tournaments?status=upcoming`),
+      user?.teamId ? apiFetch<any>(`/tournaments?registeredTeamId=${user.teamId}`) : Promise.resolve({ data: [] }),
+      apiFetch<any>(`/tournaments?status=completed`)
+    ])
+      .then(([available, registered, past]: any[]) => {
+        setAvailableTournaments(available.data || []);
+        setRegisteredTournaments(registered.data || []);
+        setPastTournaments(past.data || []);
+      })
+      .catch(err => setError(typeof err === "string" ? err : "Failed to load tournaments"))
+      .finally(() => setLoading(false));
+  }, [user?.teamId]);
 
-  const registeredTournaments = [
-    {
-      id: 1,
-      title: "PUBG Mobile Championship",
-      date: "Jan 15 - Jan 17, 2025",
-      participants: 96,
-      maxParticipants: 128,
-      prize: "$10,000",
-      status: "Registered",
-      type: "Squad",
-      game: "PUBG Mobile",
-      registrationDate: "Dec 28, 2024",
-      teamName: "Elite Gamers",
-      image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
+  const handleRegister = async (tournamentId: string) => {
+    if (!user?.teamId) {
+      addToast("You must be part of a team to register.", "error");
+      return;
     }
-  ];
-
-  const pastTournaments = [
-    {
-      id: 5,
-      title: "Mobile Legends Winter Cup",
-      date: "Dec 15 - Dec 17, 2024",
-      prize: "$8,000",
-      status: "Completed",
-      type: "Team",
-      game: "Mobile Legends",
-      result: "2nd Place",
-      earnings: "$2,000",
-      image: "https://images.pexels.com/photos/194511/pexels-photo-194511.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 6,
-      title: "Free Fire Solo Tournament",
-      date: "Nov 20 - Nov 22, 2024",
-      prize: "$3,000",
-      status: "Completed",
-      type: "Solo",
-      game: "Free Fire",
-      result: "1st Place",
-      earnings: "$1,500",
-      image: "https://images.pexels.com/photos/3945313/pexels-photo-3945313.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
+    setRegisteringId(tournamentId);
+    try {
+      await apiFetch(`/tournaments/${tournamentId}/register`, {
+        method: "POST",
+        body: JSON.stringify({ teamId: user.teamId })
+      });
+      addToast("Team registered for tournament!", "success");
+      // Optionally refetch tournaments
+    } catch (err: any) {
+      addToast(err?.toString() || "Failed to register team", "error");
+    } finally {
+      setRegisteringId(null);
     }
-  ];
+  };
 
   const getCurrentTournaments = () => {
     switch (activeTab) {
@@ -211,123 +173,56 @@ export const ClientTournamentsPage: React.FC = () => {
         </div>
 
         {/* Tournament Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredTournaments.map((tournament) => (
-            <Card key={tournament.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-all duration-300">
-              <div className="relative">
-                <img 
-                  src={tournament.image} 
-                  alt={tournament.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute top-4 left-4">
-                  <span className="px-2 py-1 bg-[#19191d]/80 text-white text-xs font-semibold rounded">
-                    {tournament.game}
-                  </span>
-                </div>
-                <div className="absolute top-4 right-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(tournament.status)}`}>
-                    {tournament.status}
-                  </span>
-                </div>
-                <div className="absolute bottom-4 left-4">
-                  <span className="px-2 py-1 bg-[#f34024] text-white text-xs font-semibold rounded">
-                    {tournament.type}
-                  </span>
-                </div>
-              </div>
-              
-              <CardContent className="p-6"> 
-                <h3 className="text-xl font-bold text-white mb-3">{tournament.title}</h3>
-                
-                <div className="space-y-2 text-gray-400 text-sm mb-4">
-                  <div className="flex items-center">
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    {tournament.date}
+        {loading ? (
+          <div className="text-center text-white">Loading tournaments...</div>
+        ) : error ? (
+          <div className="text-center text-red-500">{error}</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredTournaments.map((tournament) => (
+              <Card key={tournament.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-all duration-300 hover:transform hover:scale-105">
+                <div className="relative">
+                  <img 
+                    src={tournament.imageUrl || tournament.image || "https://via.placeholder.com/400x200"} 
+                    alt={tournament.name}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="absolute top-4 left-4">
+                    <span className="px-2 py-1 bg-[#19191d]/80 text-white text-xs font-semibold rounded">
+                      {tournament.game}
+                    </span>
                   </div>
-                  
+                  <div className="absolute top-4 right-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(tournament.status)}`}>
+                      {tournament.status}
+                    </span>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <h2 className="text-lg font-bold text-white mb-2">{tournament.name}</h2>
+                  <p className="text-gray-400 mb-4 line-clamp-2">{tournament.description}</p>
+                  <div className="flex items-center justify-between text-sm text-gray-400">
+                    <span><CalendarIcon className="w-4 h-4 inline mr-1" /> {tournament.startDate ? new Date(tournament.startDate).toLocaleDateString() : "TBA"}</span>
+                    <span><UsersIcon className="w-4 h-4 inline mr-1" /> {tournament.maxTeams || "?"} Teams</span>
+                    <span><TrophyIcon className="w-4 h-4 inline mr-1" /> {tournament.prizePool ? `$${tournament.prizePool}` : "TBA"}</span>
+                  </div>
                   {activeTab === "available" && (
-                    <>
-                      <div className="flex items-center">
-                        <UsersIcon className="w-4 h-4 mr-2" />
-                        {"participants" in tournament && "maxParticipants" in tournament ? `${tournament.participants}/${tournament.maxParticipants} participants` : null}
-                      </div>
-                      <div className="flex items-center">
-                        <ClockIcon className="w-4 h-4 mr-2" />
-                        {"registrationDeadline" in tournament ? `Register by ${tournament.registrationDeadline}` : null}
-                      </div>
-                    </>
-                  )}
-                  
-                  {activeTab === "registered" && (
-                    <>
-                      <div className="flex items-center">
-                        <CheckCircleIcon className="w-4 h-4 mr-2 text-green-500" />
-                        {"teamName" in tournament ? `Registered as ${tournament.teamName}` : null}
-                      </div>
-                      <div className="flex items-center">
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        {"registrationDate" in tournament ? `Registered on ${tournament.registrationDate}` : null}
-                      </div>
-                    </>
-                  )}
-                  
-                  {activeTab === "past" && (
-                    <div className="flex items-center">
-                      <TrophyIcon className="w-4 h-4 mr-2 text-yellow-500" />
-                      {"result" in tournament && "earnings" in tournament ? `${tournament.result} - Earned ${tournament.earnings}` : null}
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center">
-                    <TrophyIcon className="w-4 h-4 mr-2" />
-                    {tournament.prize} prize pool
-                  </div>
-                </div>
-
-                {/* Progress Bar for Available Tournaments */}
-                {activeTab === "available" &&
-                  "participants" in tournament &&
-                  "maxParticipants" in tournament &&
-                  typeof tournament.participants === "number" &&
-                  typeof tournament.maxParticipants === "number" && (
-                    <div className="mb-4">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>Registration Progress</span>
-                        <span>{Math.round((tournament.participants / tournament.maxParticipants) * 100)}%</span>
-                      </div>
-                      <div className="w-full bg-[#292932] rounded-full h-2">
-                        <div
-                          className="bg-[#f34024] h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(tournament.participants / tournament.maxParticipants) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
-                
-                <div className="flex space-x-2">
-                  <Link to={`/tournaments/${tournament.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full border-[#292932] hover:text-white hover:bg-[#292932]">
-                      View Details
+                    <Button 
+                      onClick={() => handleRegister(tournament.id)}
+                      disabled={registeringId === tournament.id || !user?.teamId}
+                      className="w-full mt-4 bg-[#f34024] hover:bg-[#f34024]/90 text-white"
+                    >
+                      {registeringId === tournament.id ? "Registering..." : "Register"}
                     </Button>
+                  )}
+                  <Link to={`/tournaments/${tournament.id}`} className="block mt-4">
+                    <Button className="w-full bg-[#292932] hover:bg-[#f34024]/90 text-white">View Details</Button>
                   </Link>
-                  
-                  {activeTab === "available" && tournament.status === "Registration Open" && (
-                    <Button className="flex-1 bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-                      Register
-                    </Button>
-                  )}
-                  
-                  {activeTab === "registered" && (
-                    <Button variant="outline" className="flex-1 border-red-600 text-red-400 hover:bg-red-600 hover:text-white">
-                      Withdraw
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {filteredTournaments.length === 0 && (
           <div className="text-center py-12">

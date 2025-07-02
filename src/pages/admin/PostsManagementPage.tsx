@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, EyeIcon, CalendarIcon, UserIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
+import { apiFetch } from "../../lib/api";
 
 export const PostsManagementPage: React.FC = () => {
   const { addToast } = useToast();
@@ -11,69 +12,35 @@ export const PostsManagementPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 9;
 
-  const posts = [
-    {
-      id: 1,
-      title: "New Tournament Format Announced for 2025 Season",
-      excerpt: "We're introducing a revolutionary bracket system that will change how competitive esports tournaments are played...",
-      author: "Admin Team",
-      status: "published",
-      publishDate: "Jan 10, 2025",
-      views: 1247,
-      likes: 89,
-      tags: ["Tournament", "Announcement"],
-      image: "https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    },
-    {
-      id: 2,
-      title: "Prize Pool Increased for Winter Championship",
-      excerpt: "Due to overwhelming response from the community, we've decided to increase the total prize pool for our Winter Championship...",
-      author: "Tournament Director",
-      status: "published",
-      publishDate: "Jan 8, 2025",
-      views: 892,
-      likes: 67,
-      tags: ["Prize", "Championship"],
-      image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    },
-    {
-      id: 3,
-      title: "Mobile Gaming Takes Center Stage",
-      excerpt: "Mobile esports continues to grow with new tournaments and increased participation. Here's what you need to know...",
-      author: "Gaming Analyst",
-      status: "draft",
-      publishDate: "Jan 5, 2025",
-      views: 0,
-      likes: 0,
-      tags: ["Mobile", "Gaming", "Trends"],
-      image: "https://images.pexels.com/photos/194511/pexels-photo-194511.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    },
-    {
-      id: 4,
-      title: "Player Spotlight: Rising Stars of 2025",
-      excerpt: "Meet the upcoming players who are making waves in the competitive scene. These rising stars are ones to watch...",
-      author: "Community Manager",
-      status: "scheduled",
-      publishDate: "Jan 15, 2025",
-      views: 0,
-      likes: 0,
-      tags: ["Players", "Spotlight"],
-      image: "https://images.pexels.com/photos/3829227/pexels-photo-3829227.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    },
-    {
-      id: 5,
-      title: "New Anti-Cheat System Implementation",
-      excerpt: "We're rolling out an advanced anti-cheat system to ensure fair play across all tournaments...",
-      author: "Technical Team",
-      status: "published",
-      publishDate: "Dec 28, 2024",
-      views: 1456,
-      likes: 123,
-      tags: ["Security", "Fair Play"],
-      image: "https://images.pexels.com/photos/3945313/pexels-photo-3945313.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
+  const fetchPosts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let query = `/posts?admin=true&page=${page}&limit=${limit}`;
+      if (statusFilter !== "all") query += `&status=${statusFilter}`;
+      if (searchTerm) query += `&search=${encodeURIComponent(searchTerm)}`;
+      const res = await apiFetch<any>(query);
+      setPosts(Array.isArray(res.data) ? res.data : []);
+      setTotal(res.total || (Array.isArray(res.data) ? res.data.length : 0));
+    } catch (err: any) {
+      setError(typeof err === "string" ? err : "Failed to load posts");
+      console.error("Posts API error:", err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchPosts();
+    // eslint-disable-next-line
+  }, [page, statusFilter, searchTerm]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -106,17 +73,37 @@ export const PostsManagementPage: React.FC = () => {
     }
   };
 
-  const handleDeletePost = (postId: number, postTitle: string) => {
+  const handleDeletePost = async (postId: string, postTitle: string) => {
     if (confirm(`Are you sure you want to delete "${postTitle}"?`)) {
-      addToast(`Post "${postTitle}" has been deleted`, "success");
+      try {
+        await apiFetch(`/posts/${postId}`, { method: "DELETE" });
+        addToast(`Post "${postTitle}" has been deleted`, "success");
+        fetchPosts();
+      } catch (err: any) {
+        addToast(err?.toString() || "Failed to delete post", "error");
+      }
     }
   };
 
-  const handleCreatePost = (e: React.FormEvent) => {
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    addToast("Post created successfully!", "success");
-    setShowCreateModal(false);
-    setFormData({ title: "", content: "", tags: "", status: "draft" });
+    try {
+      await apiFetch("/posts", {
+        method: "POST",
+        body: JSON.stringify({
+          title: formData.title,
+          content: formData.content,
+          tags: formData.tags.split(",").map((t) => t.trim()),
+          status: formData.status
+        })
+      });
+      addToast("Post created successfully!", "success");
+      setShowCreateModal(false);
+      setFormData({ title: "", content: "", tags: "", status: "draft" });
+      fetchPosts();
+    } catch (err: any) {
+      addToast(err?.toString() || "Failed to create post", "error");
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -225,94 +212,100 @@ export const PostsManagementPage: React.FC = () => {
       )}
 
       {/* Posts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredPosts.map((post) => (
-          <Card key={post.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
-            <div className="relative">
-              <img 
-                src={post.image} 
-                alt={post.title}
-                className="w-full h-40 object-cover"
-              />
-              <div className="absolute top-4 left-4">
-                <input
-                  type="checkbox"
-                  checked={selectedPosts.includes(post.id)}
-                  onChange={() => handleSelectPost(post.id)}
-                  className="rounded border-[#292932] bg-[#19191d] text-[#f34024] focus:ring-[#f34024]"
+      {loading ? (
+        <div className="text-center py-12 text-gray-400">Loading posts...</div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-500">{error}</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredPosts.map((post) => (
+            <Card key={post.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
+              <div className="relative">
+                <img 
+                  src={post.image} 
+                  alt={post.title}
+                  className="w-full h-40 object-cover"
                 />
-              </div>
-              <div className="absolute top-4 right-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(post.status)}`}>
-                  {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-                </span>
-              </div>
-            </div>
-            
-            <CardContent className="p-6">
-              <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{post.title}</h3>
-              <p className="text-gray-400 text-sm mb-4 line-clamp-3">{post.excerpt}</p>
-              
-              {/* Tags */}
-              <div className="flex flex-wrap gap-1 mb-4">
-                {post.tags.map((tag) => (
-                  <span key={tag} className="px-2 py-1 bg-[#292932] text-gray-300 text-xs rounded">
-                    {tag}
+                <div className="absolute top-4 left-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedPosts.includes(post.id)}
+                    onChange={() => handleSelectPost(post.id)}
+                    className="rounded border-[#292932] bg-[#19191d] text-[#f34024] focus:ring-[#f34024]"
+                  />
+                </div>
+                <div className="absolute top-4 right-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(post.status)}`}>
+                    {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
                   </span>
-                ))}
-              </div>
-              
-              {/* Author and Date */}
-              <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
-                <div className="flex items-center">
-                  <UserIcon className="w-3 h-3 mr-1" />
-                  <span>{post.author}</span>
-                </div>
-                <div className="flex items-center">
-                  <CalendarIcon className="w-3 h-3 mr-1" />
-                  <span>{post.publishDate}</span>
                 </div>
               </div>
               
-              {/* Stats */}
-              {post.status === "published" && (
-                <div className="flex justify-between text-xs text-gray-400 mb-4">
-                  <span>{post.views} views</span>
-                  <span>{post.likes} likes</span>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{post.title}</h3>
+                <p className="text-gray-400 text-sm mb-4 line-clamp-3">{post.excerpt}</p>
+                
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1 mb-4">
+                  {post.tags.map((tag: any) => (
+                    <span key={tag} className="px-2 py-1 bg-[#292932] text-gray-300 text-xs rounded">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-              )}
-              
-              {/* Actions */}
-              <div className="flex space-x-2">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
-                >
-                  <EyeIcon className="w-3 h-3 mr-1" />
-                  View
-                </Button>
-                <Button 
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
-                >
-                  <EditIcon className="w-3 h-3 mr-1" />
-                  Edit
-                </Button>
-                <Button 
-                  size="sm"
-                  onClick={() => handleDeletePost(post.id, post.title)}
-                  variant="outline"
-                  className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                >
-                  <TrashIcon className="w-3 h-3" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                
+                {/* Author and Date */}
+                <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
+                  <div className="flex items-center">
+                    <UserIcon className="w-3 h-3 mr-1" />
+                    <span>{post.author}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CalendarIcon className="w-3 h-3 mr-1" />
+                    <span>{post.publishDate}</span>
+                  </div>
+                </div>
+                
+                {/* Stats */}
+                {post.status === "published" && (
+                  <div className="flex justify-between text-xs text-gray-400 mb-4">
+                    <span>{post.views} views</span>
+                    <span>{post.likes} likes</span>
+                  </div>
+                )}
+                
+                {/* Actions */}
+                <div className="flex space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
+                  >
+                    <EyeIcon className="w-3 h-3 mr-1" />
+                    View
+                  </Button>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
+                  >
+                    <EditIcon className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                  <Button 
+                    size="sm"
+                    onClick={() => handleDeletePost(post.id, post.title)}
+                    variant="outline"
+                    className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                  >
+                    <TrashIcon className="w-3 h-3" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {filteredPosts.length === 0 && (
         <div className="text-center py-12">

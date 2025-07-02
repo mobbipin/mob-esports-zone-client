@@ -5,6 +5,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
+import { apiFetch, apiUpload } from "../../lib/api";
 
 export const TournamentCreationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,10 @@ export const TournamentCreationPage: React.FC = () => {
     rules: "",
     bannerImage: ""
   });
+
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState("");
 
   const games = [
     "PUBG Mobile",
@@ -50,18 +55,50 @@ export const TournamentCreationPage: React.FC = () => {
     }));
   };
 
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBannerFile(file);
+    setBannerUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("banner", file);
+      const res = await apiUpload("/upload/tournament-banner", formData);
+      setBannerUrl(res.data?.url || "");
+      addToast("Banner uploaded!", "success");
+    } catch (err: any) {
+      addToast(err?.toString() || "Failed to upload banner", "error");
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      const payload: any = {
+        name: formData.title,
+        description: formData.description,
+        game: formData.game,
+        type: formData.type,
+        maxTeams: parseInt(formData.maxParticipants),
+        prizePool: formData.prize.replace(/[$,]/g, ""),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        registrationDeadline: formData.registrationDeadline,
+        rules: formData.rules,
+        bannerUrl: bannerUrl || undefined,
+        date: formData.startDate || ""
+      };
+      await apiFetch("/tournaments", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
       addToast("Tournament created successfully!", "success");
       navigate("/admin/tournaments");
-    } catch (error) {
-      addToast("Failed to create tournament. Please try again.", "error");
+    } catch (error: any) {
+      addToast(error?.toString() || "Failed to create tournament. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -69,15 +106,30 @@ export const TournamentCreationPage: React.FC = () => {
 
   const handleSaveDraft = async () => {
     setIsSubmitting(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const payload: any = {
+        name: formData.title,
+        description: formData.description,
+        game: formData.game,
+        type: formData.type,
+        maxTeams: parseInt(formData.maxParticipants),
+        prizePool: formData.prize.replace(/[$,]/g, ""),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        registrationDeadline: formData.registrationDeadline,
+        rules: formData.rules,
+        bannerUrl: bannerUrl || undefined,
+        status: "draft",
+        date: formData.startDate || ""
+      };
+      await apiFetch("/tournaments", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
       addToast("Tournament saved as draft!", "info");
       navigate("/admin/tournaments");
-    } catch (error) {
-      addToast("Failed to save draft. Please try again.", "error");
+    } catch (error: any) {
+      addToast(error?.toString() || "Failed to save draft. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -335,10 +387,11 @@ export const TournamentCreationPage: React.FC = () => {
                   type="file"
                   accept="image/*"
                   className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                  onChange={handleBannerChange}
+                  disabled={bannerUploading}
                 />
-                <p className="text-gray-500 text-xs mt-2">
-                  Recommended: 800x400px, JPG or PNG
-                </p>
+                {bannerUploading && <p className="text-yellow-500 text-xs mt-2">Uploading...</p>}
+                {bannerUrl && <img src={bannerUrl} alt="Banner Preview" className="mt-2 rounded-lg max-h-32 mx-auto" />}
               </div>
             </CardContent>
           </Card>
