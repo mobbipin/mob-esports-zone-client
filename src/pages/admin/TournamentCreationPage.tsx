@@ -11,6 +11,7 @@ export const TournamentCreationPage: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string[] }>({});
   
   const [formData, setFormData] = useState({
     title: "",
@@ -75,6 +76,7 @@ export const TournamentCreationPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     setIsSubmitting(true);
     try {
       const payload: any = {
@@ -98,7 +100,11 @@ export const TournamentCreationPage: React.FC = () => {
       addToast("Tournament created successfully!", "success");
       navigate("/admin/tournaments");
     } catch (error: any) {
-      addToast(error?.toString() || "Failed to create tournament. Please try again.", "error");
+      if (error && error.fieldErrors) {
+        setFieldErrors(error.fieldErrors);
+      } else {
+        addToast(error?.toString() || "Failed to create tournament. Please try again.", "error");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -196,6 +202,9 @@ export const TournamentCreationPage: React.FC = () => {
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                     required
                   />
+                  {fieldErrors.name && fieldErrors.name.map((err, idx) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
                 </div>
 
                 <div>
@@ -211,6 +220,9 @@ export const TournamentCreationPage: React.FC = () => {
                     className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none"
                     required
                   />
+                  {fieldErrors.description && fieldErrors.description.map((err, idx) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -230,6 +242,9 @@ export const TournamentCreationPage: React.FC = () => {
                         <option key={game} value={game}>{game}</option>
                       ))}
                     </select>
+                    {fieldErrors.game && fieldErrors.game.map((err, idx) => (
+                      <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                    ))}
                   </div>
 
                   <div>
@@ -249,6 +264,9 @@ export const TournamentCreationPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
+                    {fieldErrors.type && fieldErrors.type.map((err, idx) => (
+                      <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                    ))}
                   </div>
                 </div>
 
@@ -269,6 +287,9 @@ export const TournamentCreationPage: React.FC = () => {
                       className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                       required
                     />
+                    {fieldErrors.maxTeams && fieldErrors.maxTeams.map((err, idx) => (
+                      <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                    ))}
                   </div>
 
                   <div>
@@ -284,6 +305,9 @@ export const TournamentCreationPage: React.FC = () => {
                       className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                       required
                     />
+                    {fieldErrors.prizePool && fieldErrors.prizePool.map((err, idx) => (
+                      <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -311,6 +335,9 @@ export const TournamentCreationPage: React.FC = () => {
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                     required
                   />
+                  {fieldErrors.startDate && fieldErrors.startDate.map((err, idx) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
                 </div>
 
                 <div>
@@ -325,6 +352,9 @@ export const TournamentCreationPage: React.FC = () => {
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                     required
                   />
+                  {fieldErrors.endDate && fieldErrors.endDate.map((err, idx) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
                 </div>
 
                 <div>
@@ -339,6 +369,9 @@ export const TournamentCreationPage: React.FC = () => {
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                     required
                   />
+                  {fieldErrors.registrationDeadline && fieldErrors.registrationDeadline.map((err, idx) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
                 </div>
               </div>
             </CardContent>
@@ -362,6 +395,9 @@ export const TournamentCreationPage: React.FC = () => {
                   className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none"
                   required
                 />
+                {fieldErrors.rules && fieldErrors.rules.map((err, idx) => (
+                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                ))}
                 <p className="text-gray-400 text-xs mt-2">
                   Include match format, scoring system, conduct rules, and any special regulations.
                 </p>

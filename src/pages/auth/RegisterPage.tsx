@@ -21,6 +21,7 @@ export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string[] }>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -31,25 +32,26 @@ export const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setFieldErrors({});
     if (formData.password !== formData.confirmPassword) {
       addToast("Passwords do not match", "error");
       return;
     }
-
     if (formData.password.length < 6) {
       addToast("Password must be at least 6 characters", "error");
       return;
     }
-
     setLoading(true);
-
     try {
       await register(formData);
       addToast("Registration successful!", "success");
       navigate("/dashboard");
-    } catch (error) {
-      addToast("Registration failed. Please try again.", "error");
+    } catch (error: any) {
+      if (error && error.fieldErrors) {
+        setFieldErrors(error.fieldErrors);
+      } else {
+        addToast("Registration failed. Please try again.", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -118,6 +120,9 @@ export const RegisterPage: React.FC = () => {
                   placeholder="Enter your email"
                   required
                 />
+                {fieldErrors.email && fieldErrors.email.map((err, idx) => (
+                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                ))}
               </div>
 
               <div>

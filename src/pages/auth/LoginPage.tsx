@@ -15,17 +15,23 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string[] }>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     setLoading(true);
 
     try {
       await login(email, password);
       addToast("Login successful!", "success");
       navigate("/dashboard");
-    } catch (error) {
-      addToast("Login failed. Please check your credentials.", "error");
+    } catch (error: any) {
+      if (error && error.fieldErrors) {
+        setFieldErrors(error.fieldErrors);
+      } else {
+        addToast("Login failed. Please check your credentials.", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -61,6 +67,9 @@ export const LoginPage: React.FC = () => {
                   placeholder="Enter your email"
                   required
                 />
+                {fieldErrors.email && fieldErrors.email.map((err, idx) => (
+                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                ))}
               </div>
 
               <div>
@@ -85,6 +94,9 @@ export const LoginPage: React.FC = () => {
                     {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                   </button>
                 </div>
+                {fieldErrors.password && fieldErrors.password.map((err, idx) => (
+                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                ))}
               </div>
 
               <Button

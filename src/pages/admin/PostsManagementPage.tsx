@@ -4,7 +4,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, apiUpload } from "../../lib/api";
 
 export const PostsManagementPage: React.FC = () => {
   const { addToast } = useToast();
@@ -18,6 +18,8 @@ export const PostsManagementPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 9;
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -46,7 +48,8 @@ export const PostsManagementPage: React.FC = () => {
     title: "",
     content: "",
     tags: "",
-    status: "draft"
+    status: "draft",
+    imageUrl: ""
   });
 
   const filteredPosts = posts.filter(post => {
@@ -88,21 +91,41 @@ export const PostsManagementPage: React.FC = () => {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        title: formData.title,
+        content: formData.content,
+        imageUrl: formData.imageUrl || imageUrl || "",
+        tags: formData.tags.split(",").map((t) => t.trim()),
+        status: formData.status
+      };
       await apiFetch("/posts", {
         method: "POST",
-        body: JSON.stringify({
-          title: formData.title,
-          content: formData.content,
-          tags: formData.tags.split(",").map((t) => t.trim()),
-          status: formData.status
-        })
+        body: JSON.stringify(payload)
       });
       addToast("Post created successfully!", "success");
       setShowCreateModal(false);
-      setFormData({ title: "", content: "", tags: "", status: "draft" });
+      setFormData({ title: "", content: "", tags: "", status: "draft", imageUrl: "" });
       fetchPosts();
     } catch (err: any) {
       addToast(err?.toString() || "Failed to create post", "error");
+    }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formDataUpload);
+      setImageUrl(res.data.url);
+      setFormData(prev => ({ ...prev, imageUrl: res.data.url }));
+      addToast("Image uploaded!", "success");
+    } catch (err: any) {
+      addToast(err?.toString() || "Failed to upload image", "error");
+    } finally {
+      setImageUploading(false);
     }
   };
 
@@ -125,6 +148,31 @@ export const PostsManagementPage: React.FC = () => {
     { label: "Drafts", value: posts.filter(p => p.status === "draft").length, color: "text-gray-400" },
     { label: "Total Views", value: posts.reduce((sum, p) => sum + p.views, 0).toLocaleString(), color: "text-[#f34024]" }
   ];
+
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    content: "",
+    tags: "",
+    status: "draft",
+    imageUrl: ""
+  });
+
+  const handleEditImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formDataUpload);
+      setEditFormData(prev => ({ ...prev, imageUrl: res.data.url }));
+      addToast("Image uploaded!", "success");
+    } catch (err: any) {
+      addToast(err?.toString() || "Failed to upload image", "error");
+    } finally {
+      setImageUploading(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -372,6 +420,13 @@ export const PostsManagementPage: React.FC = () => {
                     <option value="published">Publish Now</option>
                     <option value="scheduled">Schedule for Later</option>
                   </select>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-white mb-2">Image</label>
+                  <input type="file" accept="image/*" onChange={handleImageChange} disabled={imageUploading} />
+                  {imageUploading && <p className="text-yellow-500 text-xs mt-2">Uploading...</p>}
+                  {imageUrl && <img src={imageUrl} alt="Preview" className="mt-2 rounded-lg max-h-32" />}
                 </div>
                 
                 <div className="flex space-x-3 pt-4">
