@@ -836,7 +836,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ## Base URL
 
 - **Local Development**: `http://127.0.0.1:8787`
-- **Production**: `https://your-worker.your-subdomain.workers.dev`
+- **Production**: `https://esportszone.mobbysc.com/`
 
 ## Notes
 
