@@ -83,7 +83,7 @@ export const NewsDetailPage: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" className="border-[#292932] text-white hover:bg-[#292932]">
+              <Button variant="outline" size="sm" className="border-[#292932] hover:text-white hover:bg-[#292932]">
                 <ShareIcon className="w-4 h-4 mr-2" />
                 Share
               </Button>

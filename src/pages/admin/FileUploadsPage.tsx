@@ -38,12 +38,16 @@ export const FileUploadsPage: React.FC = () => {
     if (!file) return;
     setUploading(true);
     try {
+      console.log('Uploading file:', file.name, file.size, file.type);
       const formData = new FormData();
       formData.append("file", file);
-      await apiUpload<any>("/upload/file", formData);
+      console.log('FormData created, sending to API...');
+      const res = await apiUpload<any>("/upload/file", formData);
+      console.log('Upload response:', res);
       addToast("File uploaded!", "success");
       fetchFiles();
     } catch (err: any) {
+      console.error('Upload error:', err);
       addToast(err.message || err?.toString() || "Failed to upload file", "error");
     } finally {
       setUploading(false);

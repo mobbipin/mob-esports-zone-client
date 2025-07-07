@@ -5,8 +5,27 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch, apiUpload } from "../../lib/api";
-import dynamic from "react-quill";
+// @ts-ignore
+import ReactQuill from "react-quill";
+// @ts-ignore
 import "react-quill/dist/quill.snow.css";
+import { useNavigate } from "react-router-dom";
+
+// Add a simple DeleteDialog component at the top of the file
+const DeleteDialog = ({ open, onConfirm, onCancel, message }: { open: boolean, onConfirm: () => void, onCancel: () => void, message: string }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-[#19191d] p-6 rounded-lg shadow-lg w-full max-w-sm">
+        <div className="text-white mb-4">{message}</div>
+        <div className="flex justify-end space-x-2">
+          <Button onClick={onCancel} variant="outline" className="border-[#292932]">Cancel</Button>
+          <Button onClick={onConfirm} className="bg-red-600 text-white">Delete</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const PostsManagementPage: React.FC = () => {
   const { addToast } = useToast();
@@ -22,6 +41,8 @@ export const PostsManagementPage: React.FC = () => {
   const limit = 9;
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const navigate = useNavigate();
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, postId?: string, postTitle?: string }>({ open: false });
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -78,15 +99,19 @@ export const PostsManagementPage: React.FC = () => {
     }
   };
 
-  const handleDeletePost = async (postId: string, postTitle: string) => {
-    if (confirm(`Are you sure you want to delete "${postTitle}"?`)) {
-      try {
-        await apiFetch(`/posts/${postId}`, { method: "DELETE" });
-        addToast(`Post "${postTitle}" has been deleted`, "success");
-        fetchPosts();
-      } catch (err: any) {
-        addToast(err.message || err?.toString() || "Failed to delete post", "error");
-      }
+  const handleDeletePost = (postId: string, postTitle: string) => {
+    setDeleteDialog({ open: true, postId, postTitle });
+  };
+  const confirmDeletePost = async () => {
+    if (!deleteDialog.postId || !deleteDialog.postTitle) return;
+    try {
+      await apiFetch(`/posts/${deleteDialog.postId}`, { method: "DELETE" });
+      addToast(`Post "${deleteDialog.postTitle}" has been deleted`, "success");
+      fetchPosts();
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || "Failed to delete post", "error");
+    } finally {
+      setDeleteDialog({ open: false });
     }
   };
 
@@ -96,9 +121,7 @@ export const PostsManagementPage: React.FC = () => {
       const payload = {
         title: formData.title,
         content: formData.content,
-        imageUrl: formData.imageUrl || imageUrl || "",
-        tags: formData.tags.split(",").map((t) => t.trim()),
-        status: formData.status
+        imageUrl: formData.imageUrl || imageUrl || ""
       };
       await apiFetch("/posts", {
         method: "POST",
@@ -175,8 +198,6 @@ export const PostsManagementPage: React.FC = () => {
       setImageUploading(false);
     }
   };
-
-  const ReactQuill = dynamic;
 
   return (
     <div className="space-y-8">
@@ -287,8 +308,8 @@ export const PostsManagementPage: React.FC = () => {
                   />
                 </div>
                 <div className="absolute top-4 right-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(post.status)}`}>
-                    {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(post.status || "draft")}`}>
+                    {(post.status || "draft").charAt(0).toUpperCase() + (post.status || "draft").slice(1)}
                   </span>
                 </div>
               </div>
@@ -299,7 +320,7 @@ export const PostsManagementPage: React.FC = () => {
                 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-1 mb-4">
-                  {post.tags.map((tag: any) => (
+                  {(post.tags || []).map((tag: any) => (
                     <span key={tag} className="px-2 py-1 bg-[#292932] text-gray-300 text-xs rounded">
                       {tag}
                     </span>
@@ -332,6 +353,7 @@ export const PostsManagementPage: React.FC = () => {
                     size="sm" 
                     variant="outline"
                     className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
+                    onClick={() => navigate(`/admin/posts/${post.id}/view`)}
                   >
                     <EyeIcon className="w-3 h-3 mr-1" />
                     View
@@ -340,6 +362,7 @@ export const PostsManagementPage: React.FC = () => {
                     size="sm"
                     variant="outline"
                     className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
+                    onClick={() => navigate(`/admin/posts/${post.id}/edit`)}
                   >
                     <EditIcon className="w-3 h-3 mr-1" />
                     Edit
@@ -394,10 +417,11 @@ export const PostsManagementPage: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Content *</label>
                   <div className="bg-[#19191d] border border-[#292932] rounded-md">
+                    {/* @ts-ignore */}
                     <ReactQuill
                       theme="snow"
                       value={formData.content}
-                      onChange={val => setFormData(prev => ({ ...prev, content: val }))}
+                      onChange={(val: string) => setFormData(prev => ({ ...prev, content: val }))}
                       modules={{
                         toolbar: [
                           [{ 'header': [1, 2, 3, false] }],
@@ -477,6 +501,13 @@ export const PostsManagementPage: React.FC = () => {
           </Button>
         </div>
       </div>
+      {/* Delete Dialog */}
+      <DeleteDialog
+        open={deleteDialog.open}
+        onConfirm={confirmDeletePost}
+        onCancel={() => setDeleteDialog({ open: false })}
+        message={`Are you sure you want to delete post "${deleteDialog.postTitle}"? This action cannot be undone.`}
+      />
     </div>
   );
 };

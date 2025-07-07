@@ -6,6 +6,22 @@ import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 
+// Add a simple DeleteDialog component at the top of the file
+const DeleteDialog = ({ open, onConfirm, onCancel, message }: { open: boolean, onConfirm: () => void, onCancel: () => void, message: string }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-[#19191d] p-6 rounded-lg shadow-lg w-full max-w-sm">
+        <div className="text-white mb-4">{message}</div>
+        <div className="flex justify-end space-x-2">
+          <Button onClick={onCancel} variant="outline" className="border-[#292932]">Cancel</Button>
+          <Button onClick={onConfirm} className="bg-red-600 text-white">Delete</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const TeamsManagementPage: React.FC = () => {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,6 +33,7 @@ export const TeamsManagementPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 9;
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, teamId?: string, teamName?: string }>({ open: false });
 
   const fetchTeams = async () => {
     setLoading(true);
@@ -56,15 +73,19 @@ export const TeamsManagementPage: React.FC = () => {
     }
   };
 
-  const handleDeleteTeam = async (teamId: string, teamName: string) => {
-    if (confirm(`Are you sure you want to delete team "${teamName}"? This action cannot be undone.`)) {
-      try {
-        await apiFetch(`/teams/${teamId}`, { method: "DELETE" });
-        addToast(`Team "${teamName}" has been deleted`, "success");
-        fetchTeams();
-      } catch (err: any) {
-        addToast(err.message || err?.toString() || "Failed to delete team", "error");
-      }
+  const handleDeleteTeam = (teamId: string, teamName: string) => {
+    setDeleteDialog({ open: true, teamId, teamName });
+  };
+  const confirmDeleteTeam = async () => {
+    if (!deleteDialog.teamId || !deleteDialog.teamName) return;
+    try {
+      await apiFetch(`/teams/${deleteDialog.teamId}`, { method: "DELETE" });
+      addToast(`Team "${deleteDialog.teamName}" has been deleted`, "success");
+      fetchTeams();
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || "Failed to delete team", "error");
+    } finally {
+      setDeleteDialog({ open: false });
     }
   };
 
@@ -224,32 +245,32 @@ export const TeamsManagementPage: React.FC = () => {
                       className="rounded border-[#292932] bg-[#19191d] text-[#f34024] focus:ring-[#f34024]"
                     />
                     <img 
-                      src={team.logo} 
-                      alt={team.name}
+                      src={team.logo || team.logoUrl || "/assets/logo.png"}
+                      alt={team.name || "Team"}
                       className="w-12 h-12 rounded-lg object-cover"
                     />
                     <div>
-                      <h3 className="text-white font-bold">{team.name}</h3>
-                      <p className="text-[#f34024] text-sm font-medium">[{team.tag}]</p>
+                      <h3 className="text-white font-bold">{team.name || "Unnamed Team"}</h3>
+                      <p className="text-[#f34024] text-sm font-medium">[{team.tag || "-"}]</p>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 rounded text-xs font-medium text-white ${getStatusBadge(team.status)}`}>
-                    {team.status.charAt(0).toUpperCase() + team.status.slice(1)}
+                  <span className={`px-2 py-1 rounded text-xs font-medium text-white ${getStatusBadge(team.status || "active")}`}>
+                    {(team.status || "active").charAt(0).toUpperCase() + (team.status || "active").slice(1)}
                   </span>
                 </div>
 
                 {/* Team Stats */}
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <div className="text-center">
-                    <div className="text-white font-bold">{team.members}/{team.maxMembers}</div>
+                    <div className="text-white font-bold">{team.members || (team.membersList ? team.membersList.length : 0)}/{team.maxMembers || 5}</div>
                     <div className="text-gray-400 text-xs">Members</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-green-500 font-bold">{team.wins}</div>
+                    <div className="text-green-500 font-bold">{team.wins || 0}</div>
                     <div className="text-gray-400 text-xs">Wins</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-[#f34024] font-bold">{team.winRate}%</div>
+                    <div className="text-[#f34024] font-bold">{team.winRate || 0}%</div>
                     <div className="text-gray-400 text-xs">Win Rate</div>
                   </div>
                 </div>
@@ -258,12 +279,12 @@ export const TeamsManagementPage: React.FC = () => {
                 <div className="mb-4 p-3 bg-[#19191d] rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-white text-sm font-medium">Captain: {team.captain}</div>
-                      <div className="text-gray-400 text-xs">Created {team.created}</div>
+                      <div className="text-white text-sm font-medium">Captain: {team.captain || (team.membersList && team.membersList[0]?.username) || "-"}</div>
+                      <div className="text-gray-400 text-xs">Last active: {team.lastActive || "-"}</div>
                     </div>
                     <Button 
                       size="sm"
-                      onClick={() => handleMessageCaptain(team.captain)}
+                      onClick={() => handleMessageCaptain(team.captain || (team.membersList && team.membersList[0]?.username) || "-")}
                       className="bg-[#f34024] hover:bg-[#f34024]/90 text-white"
                     >
                       <MessageCircleIcon className="w-3 h-3 mr-1" />
@@ -276,19 +297,19 @@ export const TeamsManagementPage: React.FC = () => {
                 <div className="mb-4">
                   <div className="text-white text-sm font-medium mb-2">Members:</div>
                   <div className="space-y-1">
-                    {team.membersList.map((member: any, index: number) => (
+                    {(team.membersList || []).map((member: any, index: number) => (
                       <div key={index} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-300">{member.username}</span>
+                        <span className="text-gray-300">{member.username || "-"}</span>
                         <span className={`px-2 py-1 rounded ${
                           member.role === "Captain" ? "bg-yellow-600 text-white" : "bg-[#292932] text-gray-300"
                         }`}>
-                          {member.role}
+                          {member.role || "Member"}
                         </span>
                       </div>
                     ))}
-                    {team.members < team.maxMembers && (
+                    {(team.maxMembers && ((team.members || (team.membersList ? team.membersList.length : 0)) < team.maxMembers)) && (
                       <div className="text-gray-500 text-xs italic">
-                        {team.maxMembers - team.members} slot{team.maxMembers - team.members > 1 ? 's' : ''} available
+                        {team.maxMembers - (team.members || (team.membersList ? team.membersList.length : 0))} slot{team.maxMembers - (team.members || (team.membersList ? team.membersList.length : 0)) > 1 ? 's' : ''} available
                       </div>
                     )}
                   </div>
@@ -317,7 +338,7 @@ export const TeamsManagementPage: React.FC = () => {
 
                 {/* Last Active */}
                 <div className="mt-3 text-center">
-                  <span className="text-gray-500 text-xs">Last active: {team.lastActive}</span>
+                  <span className="text-gray-500 text-xs">Last active: {team.lastActive || "-"}</span>
                 </div>
               </CardContent>
             </Card>
@@ -331,6 +352,14 @@ export const TeamsManagementPage: React.FC = () => {
           <p className="text-gray-500">Try adjusting your search terms or filters</p>
         </div>
       )}
+
+      {/* Delete Dialog */}
+      <DeleteDialog
+        open={deleteDialog.open}
+        onConfirm={confirmDeleteTeam}
+        onCancel={() => setDeleteDialog({ open: false })}
+        message={`Are you sure you want to delete team "${deleteDialog.teamName}"? This action cannot be undone.`}
+      />
 
       {/* Pagination */}
       <div className="flex items-center justify-between">

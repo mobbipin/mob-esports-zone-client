@@ -50,9 +50,12 @@ export const TournamentDetailPage: React.FC = () => {
         body: JSON.stringify({ teamId: user.teamId })
       });
       addToast("Team registered for tournament!", "success");
-      // Optionally refetch tournament data
+      // Refetch tournament data to update participants count
+      const res = await apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`);
+      setTournament(res.data);
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to register team", "error");
+      const errorMessage = err?.error || err?.message || err?.toString() || "Failed to register team";
+      addToast(errorMessage, "error");
     } finally {
       setRegistering(false);
     }
@@ -128,7 +131,7 @@ export const TournamentDetailPage: React.FC = () => {
                       <UsersIcon className="w-5 h-5 mr-3 text-[#f34024]" />
                       <div>
                         <div className="font-medium">Participants</div>
-                        <div className="text-sm text-gray-400">{tournament.participants}/{tournament.maxParticipants}</div>
+                        <div className="text-sm text-gray-400">{tournament.participants || 0}/{tournament.maxParticipants || 0}</div>
                       </div>
                     </div>
                   </div>
@@ -174,7 +177,7 @@ export const TournamentDetailPage: React.FC = () => {
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Tournament Rules</h2>
                 <ul className="space-y-3">
-                  {tournament.rules.map((rule: any, index: number) => (
+                  {(tournament.rules || []).map((rule: any, index: number) => (
                     <li key={index} className="flex items-start text-gray-300">
                       <span className="w-6 h-6 bg-[#f34024] text-white text-sm font-bold rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
                         {index + 1}
@@ -191,7 +194,7 @@ export const TournamentDetailPage: React.FC = () => {
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Tournament Schedule</h2>
                 <div className="space-y-4">
-                  {tournament.schedule.map((item: any, index: number) => (
+                  {(tournament.schedule || []).map((item: any, index: number) => (
                     <div key={index} className="flex items-center p-4 bg-[#19191d] rounded-lg">
                       <div className="text-center mr-4">
                         <div className="text-[#f34024] font-bold text-sm">{item.date}</div>
@@ -216,9 +219,20 @@ export const TournamentDetailPage: React.FC = () => {
                 {/* Registration Button */}
                 {user ? (
                   user.teamId ? (
-                    <Button onClick={handleRegisterTeam} disabled={registering} className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white mb-2">
-                      {registering ? "Registering..." : "Register Team"}
-                    </Button>
+                    tournament.registeredTeams?.some((team: any) => team.id === user.teamId) ? (
+                      <Button disabled className="w-full bg-green-600 hover:bg-green-600 text-white mb-2">
+                        ✓ Already Registered
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={handleRegisterTeam} 
+                        disabled={registering || (tournament.participants || 0) >= (tournament.maxParticipants || 0)} 
+                        className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white mb-2"
+                      >
+                        {registering ? "Registering..." : 
+                         (tournament.participants || 0) >= (tournament.maxParticipants || 0) ? "Tournament Full" : "Register Team"}
+                      </Button>
+                    )
                   ) : (
                     <div className="text-gray-400 mb-2">You must be part of a team to register.</div>
                   )
@@ -229,12 +243,12 @@ export const TournamentDetailPage: React.FC = () => {
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-gray-400 mb-2">
                     <span>Spots Filled</span>
-                    <span>{tournament.participants}/{tournament.maxParticipants}</span>
+                    <span>{tournament.participants || 0}/{tournament.maxParticipants || 0}</span>
                   </div>
                   <div className="w-full bg-[#292932] rounded-full h-2">
                     <div 
                       className="bg-[#f34024] h-2 rounded-full"
-                      style={{ width: `${(tournament.participants / tournament.maxParticipants) * 100}%` }}
+                      style={{ width: `${((tournament.participants || 0) / (tournament.maxParticipants || 1)) * 100}%` }}
                     ></div>
                   </div>
                 </div>
@@ -252,7 +266,7 @@ export const TournamentDetailPage: React.FC = () => {
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Prize Distribution</h3>
                 <div className="space-y-3">
-                  {tournament.prizes.map((prize: any, index: number) => (
+                  {(tournament.prizes || []).map((prize: any, index: number) => (
                     <div key={index} className="flex items-center justify-between">
                       <span className="text-gray-300">{prize.position}</span>
                       <span className="text-[#f34024] font-bold">{prize.amount}</span>
@@ -267,7 +281,7 @@ export const TournamentDetailPage: React.FC = () => {
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Registered Teams</h3>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {tournament.registeredTeams.map((team: any) => (
+                  {(tournament.registeredTeams || []).map((team: any) => (
                     <div key={team.id} className="flex items-center space-x-3 mb-2">
                       <img 
                         src={team.avatar} 
@@ -277,6 +291,11 @@ export const TournamentDetailPage: React.FC = () => {
                       <span className="text-white font-medium">{team.name}</span>
                     </div>
                   ))}
+                  {(tournament.registeredTeams || []).length === 0 && (
+                    <div className="text-gray-400 text-center py-4">
+                      No teams registered yet
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4 text-center">
                   <Button variant="outline" className="border-[#292932]  hover:bg-[#292932] text-sm">

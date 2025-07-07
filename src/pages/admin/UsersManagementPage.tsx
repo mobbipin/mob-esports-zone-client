@@ -244,19 +244,19 @@ export const UsersManagementPage: React.FC = () => {
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          user.role === "admin" ? "bg-purple-600 text-white" : "bg-blue-600 text-white"
+                          (user.role || "player") === "admin" ? "bg-purple-600 text-white" : "bg-blue-600 text-white"
                         }`}>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          {(user.role || "player").charAt(0).toUpperCase() + (user.role || "player").slice(1)}
                         </span>
                       </td>
                       <td className="p-4">
                         <div className="flex items-center">
                           <div className={`w-2 h-2 rounded-full mr-2 ${
-                            user.status === "active" ? "bg-green-500" :
-                            user.status === "inactive" ? "bg-yellow-500" : "bg-red-500"
+                            (user.status || "active") === "active" ? "bg-green-500" :
+                            (user.status || "active") === "inactive" ? "bg-yellow-500" : "bg-red-500"
                           }`}></div>
-                          <span className={`text-sm ${getStatusColor(user.status)}`}>
-                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                          <span className={`text-sm ${getStatusColor(user.status || "active")}`}>
+                            {(user.status || "active").charAt(0).toUpperCase() + (user.status || "active").slice(1)}
                           </span>
                         </div>
                       </td>

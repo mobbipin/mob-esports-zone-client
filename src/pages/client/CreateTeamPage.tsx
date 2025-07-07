@@ -31,12 +31,16 @@ export const CreateTeamPage: React.FC = () => {
     if (!file) return;
     setLogoUploading(true);
     try {
+      console.log('Uploading team logo:', file.name, file.size, file.type);
       const form = new FormData();
       form.append("logo", file);
+      console.log('FormData created, sending to team-logo API...');
       const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", form);
+      console.log('Team logo upload response:', res);
       setFormData(prev => ({ ...prev, logoUrl: res.data.url }));
       addToast("Logo uploaded!", "success");
     } catch (err: any) {
+      console.error('Team logo upload error:', err);
       addToast(err.message || err?.toString() || "Failed to upload logo", "error");
     } finally {
       setLogoUploading(false);

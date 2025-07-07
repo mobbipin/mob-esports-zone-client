@@ -30,6 +30,10 @@ import { AdminTournamentsPage } from "./pages/admin/AdminTournamentsPage";
 import { TournamentCreationPage } from "./pages/admin/TournamentCreationPage";
 import { BracketManagementPage } from "./pages/admin/BracketManagementPage";
 import { PostsManagementPage } from "./pages/admin/PostsManagementPage";
+import { TournamentEditPage } from "./pages/admin/TournamentEditPage";
+import { PostEditPage } from "./pages/admin/PostEditPage";
+import { TournamentViewPage } from "./pages/admin/TournamentViewPage";
+import { PostViewPage } from "./pages/admin/PostViewPage";
 
 export const App = (): JSX.Element => {
   const { user, loading } = useAuth();
@@ -88,7 +92,11 @@ export const App = (): JSX.Element => {
           <Route path="tournaments" element={<AdminTournamentsPage />} />
           <Route path="tournaments/create" element={<TournamentCreationPage />} />
           <Route path="tournaments/:id/bracket" element={<BracketManagementPage />} />
+          <Route path="tournaments/:id/edit" element={<TournamentEditPage />} />
+          <Route path="tournaments/:id/view" element={<TournamentViewPage />} />
           <Route path="posts" element={<PostsManagementPage />} />
+          <Route path="posts/:id/edit" element={<PostEditPage />} />
+          <Route path="posts/:id/view" element={<PostViewPage />} />
         </Route>
       )}
 

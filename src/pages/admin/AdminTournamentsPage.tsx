@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { PlusIcon, SearchIcon, FilterIcon, CalendarIcon, UsersIcon, TrophyIcon, EditIcon, TrashIcon, SettingsIcon } from "lucide-react";
+import { PlusIcon, SearchIcon, FilterIcon, CalendarIcon, UsersIcon, TrophyIcon, EditIcon, TrashIcon, SettingsIcon, EyeIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
@@ -241,11 +241,15 @@ export const AdminTournamentsPage: React.FC = () => {
                 </div>
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2">
-                  <Link to={`/tournaments/${tournament.id}`} className="flex-1">
-                    <Button size="sm" variant="outline" className="w-full border-[#292932] hover:bg-[#292932]">
-                      View
-                    </Button>
-                  </Link>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
+                    onClick={() => navigate(`/admin/tournaments/${tournament.id}/view`)}
+                  >
+                    <EyeIcon className="w-3 h-3 mr-1" />
+                    View
+                  </Button>
                   <Link to={`/admin/tournaments/${tournament.id}/bracket`}>
                     <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                       <SettingsIcon className="w-3 h-3 mr-1" />
@@ -255,7 +259,7 @@ export const AdminTournamentsPage: React.FC = () => {
                   <Button 
                     size="sm"
                     variant="outline"
-                    className="border-[#292932] hover:text-white hover:bg-[#292932]"
+                    className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
                     onClick={() => navigate(`/admin/tournaments/${tournament.id}/edit`)}
                   >
                     <EditIcon className="w-3 h-3 mr-1" />

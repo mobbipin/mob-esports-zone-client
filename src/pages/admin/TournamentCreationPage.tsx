@@ -72,12 +72,16 @@ export const TournamentCreationPage: React.FC = () => {
     setBannerFile(file);
     setBannerUploading(true);
     try {
+      console.log('Uploading tournament banner:', file.name, file.size, file.type);
       const formData = new FormData();
       formData.append("banner", file);
+      console.log('FormData created, sending to tournament-banner API...');
       const res = await apiUpload("/upload/tournament-banner", formData);
+      console.log('Tournament banner upload response:', res);
       setBannerUrl(res.data?.url || "");
       addToast("Banner uploaded!", "success");
     } catch (err: any) {
+      console.error('Tournament banner upload error:', err);
       addToast(err.message || err?.toString() || "Failed to upload banner", "error");
     } finally {
       setBannerUploading(false);
