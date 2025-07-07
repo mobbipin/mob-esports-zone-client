@@ -85,7 +85,7 @@ export const FileUploadsPage: React.FC = () => {
               <div key={file.id} className="flex items-center justify-between bg-[#15151a] border border-[#292932] rounded-lg p-4">
                 <div>
                   <div className="text-white font-medium">{file.fileName}</div>
-                  <div className="text-gray-400 text-xs">{file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB</div>
+                  <div className="text-gray-300 text-xs">{file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB</div>
                   <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="text-[#f34024] text-xs underline">View/Download</a>
                 </div>
                 <Button variant="destructive" onClick={() => handleDelete(file.id)}>
