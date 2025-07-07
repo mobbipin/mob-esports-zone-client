@@ -18,6 +18,8 @@ import { NewsDetailPage } from "./pages/public/NewsDetailPage";
 import { ClientDashboard } from "./pages/client/ClientDashboard";
 import { ProfilePage } from "./pages/client/ProfilePage";
 import { TeamPage } from "./pages/client/TeamPage";
+import { CreateTeamPage } from "./pages/client/CreateTeamPage";
+import { ManageTeamPage } from "./pages/client/ManageTeamPage";
 import { ClientTournamentsPage } from "./pages/client/ClientTournamentsPage";
 
 // Admin Pages
@@ -64,6 +66,8 @@ export const App = (): JSX.Element => {
         <Route index element={<ClientDashboard />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="team" element={<TeamPage />} />
+        <Route path="create-team" element={<CreateTeamPage />} />
+        <Route path="manage-team" element={<ManageTeamPage />} />
         <Route path="tournaments" element={<ClientTournamentsPage />} />
       </Route>
 

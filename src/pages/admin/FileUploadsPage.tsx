@@ -94,7 +94,7 @@ export const FileUploadsPage: React.FC = () => {
         {/* Pagination */}
         <div className="flex justify-center mt-8 space-x-2">
           <Button onClick={() => setPage(page - 1)} disabled={page === 1} variant="outline">Prev</Button>
-          <span className="text-white px-2">Page {page}</span>
+          <span className=" px-2">Page {page}</span>
           <Button onClick={() => setPage(page + 1)} disabled={files.length < PAGE_SIZE} variant="outline">Next</Button>
         </div>
       </div>

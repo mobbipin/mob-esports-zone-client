@@ -8,7 +8,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
 
 export const ProfilePage: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user, setUserData } = useAuth();
   const { addToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -52,11 +52,48 @@ export const ProfilePage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateUser(formData);
-    setIsEditing(false);
-    addToast("Profile updated successfully!", "success");
+    if (!user) return;
+    setLoading(true);
+    try {
+      // Update User table
+      await apiFetch(`/users/${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          email: formData.email,
+          displayName: formData.gameUsername,
+          username: formData.username,
+        }),
+      });
+      // Update PlayerProfile table
+      await apiFetch(`/players/${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          bio: formData.bio,
+          region: formData.region,
+          rank: formData.rank,
+          gameId: formData.gameUsername,
+        }),
+      });
+      // Refetch user
+      const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
+      setUserData(me.data);
+      addToast("Profile updated successfully!", "success");
+      setIsEditing(false);
+    } catch (err: any) {
+      // Show Zod validation errors as toast
+      if (err?.issues && Array.isArray(err.issues) && err.issues.length > 0) {
+        addToast(err.issues[0].message, "error");
+      } else if (typeof err === "string") {
+        addToast(err, "error");
+      } else {
+        addToast("Failed to update profile", "error");
+      }
+      setError("Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -86,7 +123,9 @@ export const ProfilePage: React.FC = () => {
         method: "PUT",
         body: JSON.stringify({ avatar: res.data.url })
       });
-      updateUser({ avatar: res.data.url });
+      // Refetch user to update avatar in context
+      const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
+      setUserData(me.data);
     } catch (err: any) {
       addToast(err?.toString() || "Failed to upload avatar", "error");
     } finally {
@@ -151,7 +190,7 @@ export const ProfilePage: React.FC = () => {
                       <Button 
                         onClick={handleCancel}
                         variant="outline"
-                        className="border-[#292932] text-white hover:bg-[#292932]"
+                        className="border-[#292932] hover:text-white hover:bg-[#292932]"
                       >
                         Cancel
                       </Button>
@@ -340,7 +379,7 @@ export const ProfilePage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" className="w-full mt-4 border-[#292932] text-white hover:bg-[#292932]">
+                <Button variant="outline" className="w-full mt-4 border-[#292932] hover:text-white hover:bg-[#292932]">
                   View All History
                 </Button>
               </CardContent>

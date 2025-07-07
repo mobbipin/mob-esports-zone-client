@@ -109,7 +109,7 @@ export const TournamentsPage: React.FC = () => {
               <Card key={tournament.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-all duration-300 hover:transform hover:scale-105">
                 <div className="relative">
                   <img 
-                    src={tournament.imageUrl || tournament.image || "https://via.placeholder.com/400x200"} 
+                    src={tournament.imageUrl || tournament.image || ""} 
                     alt={tournament.name}
                     className="w-full h-48 object-cover"
                   />

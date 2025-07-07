@@ -136,13 +136,13 @@ export const BracketManagementPage: React.FC = () => {
           <Button 
             onClick={() => navigate("/admin/tournaments")}
             variant="outline"
-            className="border-[#292932] text-white hover:bg-[#292932]"
+            className="border-[#292932] hover:text-white hover:bg-[#292932]"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back to Tournaments
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-white">{tournament?.title}</h1>
+            <h1 className="text-3xl font-bold hover:text-white">{tournament?.title}</h1>
             <p className="text-gray-400">Bracket Management - {tournament?.format}</p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export const BracketManagementPage: React.FC = () => {
         <div className="flex space-x-3">
           <Button 
             variant="outline"
-            className="border-[#292932] text-white hover:bg-[#292932]"
+            className="border-[#292932] hover:text-white hover:bg-[#292932]"
           >
             <RefreshCwIcon className="w-4 h-4 mr-2" />
             Refresh
@@ -387,24 +387,24 @@ export const BracketManagementPage: React.FC = () => {
             {/* Quick Actions */}
             <Card className="bg-[#15151a] border-[#292932]">
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
+                <h3 className="text-lg font-bold hover:text-white mb-4">Quick Actions</h3>
                 
                 <div className="space-y-3">
                   <Button 
                     variant="outline"
-                    className="w-full border-[#292932] text-white hover:bg-[#292932] justify-start"
+                    className="w-full border-[#292932] hover:text-white hover:bg-[#292932] justify-start"
                   >
                     Export Bracket
                   </Button>
                   <Button 
                     variant="outline"
-                    className="w-full border-[#292932] text-white hover:bg-[#292932] justify-start"
+                    className="w-full border-[#292932] hover:text-white hover:bg-[#292932] justify-start"
                   >
                     Send Notifications
                   </Button>
                   <Button 
                     variant="outline"
-                    className="w-full border-[#292932] text-white hover:bg-[#292932] justify-start"
+                    className="w-full border-[#292932] hover:text-white hover:bg-[#292932] justify-start"
                   >
                     View Participants
                   </Button>

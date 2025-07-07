@@ -1,14 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BellIcon, MenuIcon, XIcon, UserIcon, LogOutIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../ui/button";
+import { apiFetch } from "../../lib/api";
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [invites, setInvites] = useState<any[]>([]);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    apiFetch(`/teams/invites/user`).then((res: any) => {
+      setInvites(res.data || []);
+    });
+  }, [user]);
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    }
+    if (isNotifOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isNotifOpen]);
+
+  const handleAccept = async (inviteId: string) => {
+    await apiFetch(`/teams/invite/${inviteId}/accept`, { method: "POST" });
+    setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "accepted" } : i));
+  };
+  const handleReject = async (inviteId: string) => {
+    await apiFetch(`/teams/invite/${inviteId}/reject`, { method: "POST" });
+    setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "rejected" } : i));
+  };
 
   const handleLogout = () => {
     logout();
@@ -27,10 +62,10 @@ export const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-[#f34024] rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden">
               <img src="assets/logo.png" alt="MOB Esports Logo" className="w-7 h-7 object-contain" />
             </div>
-            <span className="text-white font-bold text-xl">MOB ESPORTS ZONE</span>
+           
           </Link>
 
           {/* Desktop Navigation */}
@@ -51,13 +86,49 @@ export const Navbar: React.FC = () => {
             {user ? (
               <>
                 {/* Notifications */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="w-10 h-10 rounded-full border-[#292932] bg-transparent hover:bg-[#292932]"
-                >
-                  <BellIcon className="w-4 h-4 text-white" />
-                </Button>
+                <div className="relative" ref={notifRef}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="w-10 h-10 rounded-full border-[#292932] bg-transparent hover:bg-[#292932] relative"
+                    onClick={() => setIsNotifOpen((v) => !v)}
+                  >
+                    <BellIcon className="w-4 h-4 text-white" />
+                    {invites.filter(i => i.status === 'pending').length > 0 && (
+                      <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    )}
+                  </Button>
+                  {isNotifOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-[#19191d] rounded-lg shadow-lg border border-[#292932] z-50">
+                      <div className="p-4">
+                        <h3 className="text-white font-bold mb-2">Invitations</h3>
+                        {invites.length === 0 ? (
+                          <div className="text-gray-400 text-sm">No invites.</div>
+                        ) : (
+                          <ul className="space-y-2">
+                            {invites.map((invite) => (
+                              <li key={invite.id} className="flex items-center justify-between bg-[#15151a] rounded px-3 py-2">
+                                <div>
+                                  <div className="text-white text-sm font-medium">Team: {invite.teamId}</div>
+                                  <div className="text-gray-400 text-xs">From: {invite.invitedBy}</div>
+                                  <div className="text-gray-400 text-xs">Status: {invite.status}</div>
+                                </div>
+                                {invite.status === 'pending' && (
+                                  <div className="flex space-x-2">
+                                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleAccept(invite.id)}>Accept</Button>
+                                    <Button size="sm" variant="outline" className="border-red-500 text-red-400 hover:bg-red-600 hover:text-white" onClick={() => handleReject(invite.id)}>Reject</Button>
+                                  </div>
+                                )}
+                                {invite.status === 'accepted' && <span className="text-green-400 text-xs font-bold">Accepted</span>}
+                                {invite.status === 'rejected' && <span className="text-red-400 text-xs font-bold">Rejected</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Profile Dropdown */}
                 <div className="relative">

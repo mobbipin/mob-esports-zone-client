@@ -24,30 +24,6 @@ export const NewsDetailPage: React.FC = () => {
   if (error) return <div className="text-center text-red-500">{error}</div>;
   if (!article) return null;
 
-  const relatedArticles = [
-    {
-      id: 2,
-      title: "Prize Pool Increased for Winter Championship",
-      excerpt: "Due to overwhelming response from the community, we've decided to increase the total prize pool...",
-      date: "Jan 8, 2025",
-      image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    },
-    {
-      id: 3,
-      title: "Mobile Gaming Takes Center Stage",
-      excerpt: "Mobile esports continues to grow with new tournaments and increased participation...",
-      date: "Jan 5, 2025",
-      image: "https://images.pexels.com/photos/194511/pexels-photo-194511.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    },
-    {
-      id: 4,
-      title: "Player Spotlight: Rising Stars of 2025",
-      excerpt: "Meet the upcoming players who are making waves in the competitive scene...",
-      date: "Jan 3, 2025",
-      image: "https://images.pexels.com/photos/3829227/pexels-photo-3829227.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -61,7 +37,7 @@ export const NewsDetailPage: React.FC = () => {
         <div className="mb-8">
           <div className="relative h-64 md:h-80 rounded-lg overflow-hidden mb-6">
             <img 
-              src={article.imageUrl || article.image || "https://via.placeholder.com/800x400"} 
+              src={article.imageUrl || article.image || ""} 
               alt={article.title}
               className="w-full h-full object-cover"
             />
@@ -145,40 +121,6 @@ export const NewsDetailPage: React.FC = () => {
           
           <div className="text-gray-400 text-sm">
             Found this helpful? Share it with your team!
-          </div>
-        </div>
-
-        {/* Related Articles */}
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-6">Related Articles</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {relatedArticles.map((relatedArticle) => (
-              <Card key={relatedArticle.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
-                <div className="relative">
-                  <img 
-                    src={relatedArticle.image} 
-                    alt={relatedArticle.title}
-                    className="w-full h-32 object-cover"
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="text-white font-bold text-sm mb-2 line-clamp-2">
-                    {relatedArticle.title}
-                  </h3>
-                  <p className="text-gray-400 text-xs mb-3 line-clamp-2">
-                    {relatedArticle.excerpt}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 text-xs">{relatedArticle.date}</span>
-                    <Link to={`/news/${relatedArticle.id}`}>
-                      <Button size="sm" className="bg-[#f34024] hover:bg-[#f34024]/90 text-white text-xs">
-                        Read
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
           </div>
         </div>
       </div>

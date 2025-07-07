@@ -75,7 +75,7 @@ export const TournamentDetailPage: React.FC = () => {
         <div className="relative mb-8">
           <div className="relative h-64 md:h-80 rounded-lg overflow-hidden">
             <img 
-              src={tournament.bannerUrl || tournament.imageUrl || tournament.image || "https://via.placeholder.com/800x400"} 
+              src={tournament.bannerUrl || tournament.imageUrl || tournament.image || ""} 
               alt={tournament.name}
               className="w-full h-full object-cover"
             />

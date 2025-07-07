@@ -21,6 +21,7 @@ export const TeamPage: React.FC = () => {
     tag: "",
     bio: "",
     region: "",
+    logoUrl: ""
   });
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export const TeamPage: React.FC = () => {
       return;
     }
     setLoading(true);
-    apiFetch<{ status: boolean; data: any }>(`/teams/${user.teamId}`)
+    apiFetch<{ status: boolean; data: any }>(`/teams/my`)
       .then(res => setTeam(res.data))
       .catch(err => setError(typeof err === "string" ? err : "Failed to load team"))
       .finally(() => setLoading(false));
@@ -38,9 +39,14 @@ export const TeamPage: React.FC = () => {
   // Create team
   const handleCreateTeam = async () => {
     try {
+      const { logoUrl, ...restFormData } = formData;
+      const payload = {
+        ...restFormData,
+        ...(logoUrl && logoUrl.trim() !== '' ? { logoUrl } : {})
+      };
       const res = await apiFetch<{ status: boolean; data: { id: string } }>("/teams", {
         method: "POST",
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       addToast("Team created!", "success");
       // Optionally refetch or redirect
@@ -128,7 +134,7 @@ export const TeamPage: React.FC = () => {
             <div className="flex items-center space-x-6">
               <div className="relative">
                 <img 
-                  src={logoUrl || team.logoUrl || team.logo || "https://via.placeholder.com/100x100"} 
+                  src={logoUrl || team.logoUrl || team.logo || ""} 
                   alt={team.name}
                   className="w-16 h-16 rounded-lg object-cover"
                 />
