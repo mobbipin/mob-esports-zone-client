@@ -52,7 +52,7 @@ export const ClientTournamentsPage: React.FC = () => {
       addToast("Team registered for tournament!", "success");
       // Optionally refetch tournaments
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to register team", "error");
+      addToast(err.message || err?.toString() || "Failed to register team", "error");
     } finally {
       setRegisteringId(null);
     }

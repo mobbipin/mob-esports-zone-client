@@ -37,7 +37,7 @@ export const CreateTeamPage: React.FC = () => {
       setFormData(prev => ({ ...prev, logoUrl: res.data.url }));
       addToast("Logo uploaded!", "success");
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to upload logo", "error");
+      addToast(err.message || err?.toString() || "Failed to upload logo", "error");
     } finally {
       setLogoUploading(false);
     }

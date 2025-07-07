@@ -84,11 +84,11 @@ export const ProfilePage: React.FC = () => {
     } catch (err: any) {
       // Show Zod validation errors as toast
       if (err?.issues && Array.isArray(err.issues) && err.issues.length > 0) {
-        addToast(err.issues[0].message, "error");
+        addToast(err.message || err.issues[0].message, "error");
       } else if (typeof err === "string") {
         addToast(err, "error");
       } else {
-        addToast("Failed to update profile", "error");
+        addToast(err.message || "Failed to update profile", "error");
       }
       setError("Failed to update profile");
     } finally {
@@ -127,7 +127,7 @@ export const ProfilePage: React.FC = () => {
       const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
       setUserData(me.data);
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to upload avatar", "error");
+      addToast(err.message || err?.toString() || "Failed to upload avatar", "error");
     } finally {
       setAvatarUploading(false);
     }

@@ -54,6 +54,7 @@ export const Navbar: React.FC = () => {
     { to: "/", label: "Home" },
     { to: "/tournaments", label: "Tournaments" },
     { to: "/news", label: "News" },
+    { to: "/players", label: "Players" },
   ];
 
   return (

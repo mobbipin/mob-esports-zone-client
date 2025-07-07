@@ -5,6 +5,8 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch, apiUpload } from "../../lib/api";
+import dynamic from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 export const PostsManagementPage: React.FC = () => {
   const { addToast } = useToast();
@@ -83,7 +85,7 @@ export const PostsManagementPage: React.FC = () => {
         addToast(`Post "${postTitle}" has been deleted`, "success");
         fetchPosts();
       } catch (err: any) {
-        addToast(err?.toString() || "Failed to delete post", "error");
+        addToast(err.message || err?.toString() || "Failed to delete post", "error");
       }
     }
   };
@@ -107,7 +109,7 @@ export const PostsManagementPage: React.FC = () => {
       setFormData({ title: "", content: "", tags: "", status: "draft", imageUrl: "" });
       fetchPosts();
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to create post", "error");
+      addToast(err.message || err?.toString() || "Failed to create post", "error");
     }
   };
 
@@ -123,7 +125,7 @@ export const PostsManagementPage: React.FC = () => {
       setFormData(prev => ({ ...prev, imageUrl: res.data.url }));
       addToast("Image uploaded!", "success");
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to upload image", "error");
+      addToast(err.message || err?.toString() || "Failed to upload image", "error");
     } finally {
       setImageUploading(false);
     }
@@ -168,11 +170,13 @@ export const PostsManagementPage: React.FC = () => {
       setEditFormData(prev => ({ ...prev, imageUrl: res.data.url }));
       addToast("Image uploaded!", "success");
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to upload image", "error");
+      addToast(err.message || err?.toString() || "Failed to upload image", "error");
     } finally {
       setImageUploading(false);
     }
   };
+
+  const ReactQuill = dynamic;
 
   return (
     <div className="space-y-8">
@@ -389,14 +393,25 @@ export const PostsManagementPage: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Content *</label>
-                  <textarea
-                    required
-                    value={formData.content}
-                    onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                    rows={8}
-                    placeholder="Write your post content..."
-                    className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none"
-                  />
+                  <div className="bg-[#19191d] border border-[#292932] rounded-md">
+                    <ReactQuill
+                      theme="snow"
+                      value={formData.content}
+                      onChange={val => setFormData(prev => ({ ...prev, content: val }))}
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          [{ 'color': [] }, { 'background': [] }],
+                          [{ 'align': [] }],
+                          ['link', 'image'],
+                          ['clean']
+                        ]
+                      }}
+                      className="text-white min-h-[200px]"
+                    />
+                  </div>
                 </div>
                 
                 <div>

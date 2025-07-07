@@ -51,7 +51,7 @@ export const TeamPage: React.FC = () => {
       addToast("Team created!", "success");
       // Optionally refetch or redirect
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to create team", "error");
+      addToast(err.message || err?.toString() || "Failed to create team", "error");
     }
   };
 
@@ -67,7 +67,7 @@ export const TeamPage: React.FC = () => {
       setIsEditing(false);
       // Optionally refetch
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to update team", "error");
+      addToast(err.message || err?.toString() || "Failed to update team", "error");
     }
   };
 
@@ -79,7 +79,7 @@ export const TeamPage: React.FC = () => {
       addToast("Team deleted!", "success");
       // Optionally refetch or redirect
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to delete team", "error");
+      addToast(err.message || err?.toString() || "Failed to delete team", "error");
     }
   };
 
@@ -93,7 +93,7 @@ export const TeamPage: React.FC = () => {
       });
       addToast("Player invited!", "success");
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to invite player", "error");
+      addToast(err.message || err?.toString() || "Failed to invite player", "error");
     }
   };
 
@@ -114,7 +114,7 @@ export const TeamPage: React.FC = () => {
       });
       // Optionally refetch
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to upload logo", "error");
+      addToast(err.message || err?.toString() || "Failed to upload logo", "error");
     } finally {
       setLogoUploading(false);
     }

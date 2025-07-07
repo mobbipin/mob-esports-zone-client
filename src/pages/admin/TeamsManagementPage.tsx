@@ -63,7 +63,7 @@ export const TeamsManagementPage: React.FC = () => {
         addToast(`Team "${teamName}" has been deleted`, "success");
         fetchTeams();
       } catch (err: any) {
-        addToast(err?.toString() || "Failed to delete team", "error");
+        addToast(err.message || err?.toString() || "Failed to delete team", "error");
       }
     }
   };

@@ -84,7 +84,7 @@ export const BracketManagementPage: React.FC = () => {
       setEditingScore(false);
       fetchBracket();
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to update match", "error");
+      addToast(err.message || err?.toString() || "Failed to update match", "error");
     }
   };
 
@@ -96,7 +96,7 @@ export const BracketManagementPage: React.FC = () => {
       addToast("Bracket generated!", "success");
       fetchBracket();
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to generate bracket", "error");
+      addToast(err.message || err?.toString() || "Failed to generate bracket", "error");
     } finally {
       setLoading(false);
     }

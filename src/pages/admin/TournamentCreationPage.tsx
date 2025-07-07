@@ -56,6 +56,16 @@ export const TournamentCreationPage: React.FC = () => {
     }));
   };
 
+  // Helper to format datetime-local to full ISO string with seconds
+  const toFullISOString = (val: string) => {
+    if (!val) return "";
+    // If already has seconds, just add Z
+    if (val.length === 19) return val + "Z";
+    // If missing seconds, add :00
+    if (val.length === 16) return val + ":00Z";
+    return val;
+  };
+
   const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,7 +78,7 @@ export const TournamentCreationPage: React.FC = () => {
       setBannerUrl(res.data?.url || "");
       addToast("Banner uploaded!", "success");
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to upload banner", "error");
+      addToast(err.message || err?.toString() || "Failed to upload banner", "error");
     } finally {
       setBannerUploading(false);
     }
@@ -85,13 +95,13 @@ export const TournamentCreationPage: React.FC = () => {
         game: formData.game,
         type: formData.type,
         maxTeams: parseInt(formData.maxParticipants),
-        prizePool: formData.prize.replace(/[$,]/g, ""),
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        registrationDeadline: formData.registrationDeadline,
+        prizePool: Number(formData.prize.replace(/[$,]/g, "")),
+        startDate: toFullISOString(formData.startDate),
+        endDate: toFullISOString(formData.endDate),
+        registrationDeadline: toFullISOString(formData.registrationDeadline),
         rules: formData.rules,
         bannerUrl: bannerUrl || undefined,
-        date: formData.startDate || ""
+        date: toFullISOString(formData.startDate) || ""
       };
       await apiFetch("/tournaments", {
         method: "POST",
@@ -119,14 +129,14 @@ export const TournamentCreationPage: React.FC = () => {
         game: formData.game,
         type: formData.type,
         maxTeams: parseInt(formData.maxParticipants),
-        prizePool: formData.prize.replace(/[$,]/g, ""),
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        registrationDeadline: formData.registrationDeadline,
+        prizePool: Number(formData.prize.replace(/[$,]/g, "")),
+        startDate: toFullISOString(formData.startDate),
+        endDate: toFullISOString(formData.endDate),
+        registrationDeadline: toFullISOString(formData.registrationDeadline),
         rules: formData.rules,
         bannerUrl: bannerUrl || undefined,
         status: "draft",
-        date: formData.startDate || ""
+        date: toFullISOString(formData.startDate) || ""
       };
       await apiFetch("/tournaments", {
         method: "POST",
@@ -149,7 +159,7 @@ export const TournamentCreationPage: React.FC = () => {
           <Button 
             onClick={() => navigate("/admin/tournaments")}
             variant="outline"
-            className="border-[#292932] text-white hover:bg-[#292932]"
+            className="border-[#292932] hover:text-white hover:bg-[#292932]"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back to Tournaments
@@ -165,7 +175,7 @@ export const TournamentCreationPage: React.FC = () => {
             onClick={handleSaveDraft}
             disabled={isSubmitting}
             variant="outline"
-            className="border-[#292932] text-white hover:bg-[#292932]"
+            className="border-[#292932] hover:text-white hover:bg-[#292932]"
           >
             Save as Draft
           </Button>
@@ -299,6 +309,7 @@ export const TournamentCreationPage: React.FC = () => {
                     </label>
                     <Input
                       name="prize"
+                      type="number"
                       value={formData.prize}
                       onChange={handleChange}
                       placeholder="e.g., $10,000"
@@ -325,11 +336,11 @@ export const TournamentCreationPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Start Date *
+                    Start Date & Time *
                   </label>
                   <Input
-                    name="startDate"
                     type="datetime-local"
+                    name="startDate"
                     value={formData.startDate}
                     onChange={handleChange}
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
@@ -342,11 +353,11 @@ export const TournamentCreationPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    End Date *
+                    End Date & Time *
                   </label>
                   <Input
-                    name="endDate"
                     type="datetime-local"
+                    name="endDate"
                     value={formData.endDate}
                     onChange={handleChange}
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
@@ -362,8 +373,8 @@ export const TournamentCreationPage: React.FC = () => {
                     Registration Deadline *
                   </label>
                   <Input
-                    name="registrationDeadline"
                     type="datetime-local"
+                    name="registrationDeadline"
                     value={formData.registrationDeadline}
                     onChange={handleChange}
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"

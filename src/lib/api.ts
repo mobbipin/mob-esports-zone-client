@@ -28,7 +28,13 @@ export async function apiFetch<T>(
   });
   const data = await res.json();
   if (!res.ok || data.status === false) {
-    throw data.error || data.message || 'API Error';
+    let message = data.message || 'API Error';
+    if (data.error && data.error.issues && Array.isArray(data.error.issues) && data.error.issues.length > 0) {
+      message = data.error.issues[0].message || message;
+    } else if (typeof data.error === 'string') {
+      message = data.error;
+    }
+    throw { ...data.error, message };
   }
   return data;
 }
@@ -45,7 +51,13 @@ export async function apiUpload<T>(path: string, formData: FormData) {
   });
   const data = await res.json();
   if (!res.ok || data.status === false) {
-    throw data.error || data.message || 'API Error';
+    let message = data.message || 'API Error';
+    if (data.error && data.error.issues && Array.isArray(data.error.issues) && data.error.issues.length > 0) {
+      message = data.error.issues[0].message || message;
+    } else if (typeof data.error === 'string') {
+      message = data.error;
+    }
+    throw { ...data.error, message };
   }
   return data;
 } 

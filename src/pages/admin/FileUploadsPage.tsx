@@ -44,7 +44,7 @@ export const FileUploadsPage: React.FC = () => {
       addToast("File uploaded!", "success");
       fetchFiles();
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to upload file", "error");
+      addToast(err.message || err?.toString() || "Failed to upload file", "error");
     } finally {
       setUploading(false);
     }
@@ -57,7 +57,7 @@ export const FileUploadsPage: React.FC = () => {
       addToast("File deleted!", "success");
       fetchFiles();
     } catch (err: any) {
-      addToast(err?.toString() || "Failed to delete file", "error");
+      addToast(err.message || err?.toString() || "Failed to delete file", "error");
     }
   };
 

@@ -21,9 +21,9 @@ import { TeamPage } from "./pages/client/TeamPage";
 import { CreateTeamPage } from "./pages/client/CreateTeamPage";
 import { ManageTeamPage } from "./pages/client/ManageTeamPage";
 import { ClientTournamentsPage } from "./pages/client/ClientTournamentsPage";
+import PlayerListPage from "./pages/client/PlayerListPage";
 
 // Admin Pages
-import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { UsersManagementPage } from "./pages/admin/UsersManagementPage";
 import { TeamsManagementPage } from "./pages/admin/TeamsManagementPage";
 import { AdminTournamentsPage } from "./pages/admin/AdminTournamentsPage";
@@ -51,40 +51,46 @@ export const App = (): JSX.Element => {
         <Route path="tournaments/:id" element={<TournamentDetailPage />} />
         <Route path="news" element={<NewsPage />} />
         <Route path="news/:id" element={<NewsDetailPage />} />
+        <Route path="/players" element={<PlayerListPage />} />
       </Route>
 
       {/* Auth Routes */}
-      <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
-      <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <RegisterPage />} />
+      <Route path="/login" element={user ? (user.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <LoginPage />} />
+      <Route path="/register" element={user ? (user.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <RegisterPage />} />
+      
 
       {/* Client Routes */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Layout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<ClientDashboard />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="team" element={<TeamPage />} />
-        <Route path="create-team" element={<CreateTeamPage />} />
-        <Route path="manage-team" element={<ManageTeamPage />} />
-        <Route path="tournaments" element={<ClientTournamentsPage />} />
-      </Route>
+      {user && user.role !== 'admin' && (
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<ClientDashboard />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="create-team" element={<CreateTeamPage />} />
+          <Route path="manage-team" element={<ManageTeamPage />} />
+          <Route path="tournaments" element={<ClientTournamentsPage />} />
+        </Route>
+      )}
 
       {/* Admin Routes */}
-      <Route path="/admin" element={
-        <ProtectedRoute requiredRole="admin">
-          <AdminLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<AdminDashboard />} />
-        <Route path="users" element={<UsersManagementPage />} />
-        <Route path="teams" element={<TeamsManagementPage />} />
-        <Route path="tournaments" element={<AdminTournamentsPage />} />
-        <Route path="tournaments/create" element={<TournamentCreationPage />} />
-        <Route path="tournaments/:id/bracket" element={<BracketManagementPage />} />
-        <Route path="posts" element={<PostsManagementPage />} />
-      </Route>
+      {user && user.role === 'admin' && (
+        <Route path="/admin" element={
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Navigate to="users" replace />} />
+          <Route path="users" element={<UsersManagementPage />} />
+          <Route path="teams" element={<TeamsManagementPage />} />
+          <Route path="tournaments" element={<AdminTournamentsPage />} />
+          <Route path="tournaments/create" element={<TournamentCreationPage />} />
+          <Route path="tournaments/:id/bracket" element={<BracketManagementPage />} />
+          <Route path="posts" element={<PostsManagementPage />} />
+        </Route>
+      )}
 
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/" />} />
