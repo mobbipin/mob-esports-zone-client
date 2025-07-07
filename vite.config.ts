@@ -11,4 +11,22 @@ export default defineConfig({
       plugins: [tailwind()],
     },
   },
+  build: {
+    rollupOptions: {
+      external: [],
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          ui: ['lucide-react', '@radix-ui/react-slot', 'class-variance-authority'],
+        },
+      },
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
+  },
+  optimizeDeps: {
+    include: ['react-quill'],
+  },
 });
