@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BellIcon, MenuIcon, XIcon, UserIcon, LogOutIcon } from "lucide-react";
+import { BellIcon, MenuIcon, XIcon, UserIcon, LogOutIcon, UserPlus, MessageCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../ui/button";
 import { apiFetch } from "../../lib/api";
@@ -13,6 +13,9 @@ export const Navbar: React.FC = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [invites, setInvites] = useState<any[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const bellRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -20,6 +23,29 @@ export const Navbar: React.FC = () => {
       setInvites(res.data || []);
     });
   }, [user]);
+
+  useEffect(() => {
+    fetchNotifications();
+    // Optionally, poll every 30s
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await apiFetch<any>("/notifications");
+      setNotifications(res.data || []);
+    } catch {
+      setNotifications([]);
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      await apiFetch(`/notifications/${id}/read`, { method: "PUT" });
+      fetchNotifications();
+    } catch {}
+  };
 
   // Close notification dropdown on outside click
   useEffect(() => {
@@ -35,6 +61,17 @@ export const Navbar: React.FC = () => {
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isNotifOpen]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const handleAccept = async (inviteId: string) => {
     await apiFetch(`/teams/invite/${inviteId}/accept`, { method: "POST" });
@@ -55,6 +92,8 @@ export const Navbar: React.FC = () => {
     { to: "/tournaments", label: "Tournaments" },
     { to: "/news", label: "News" },
     { to: "/players", label: "Players" },
+    { to: "/friends", label: "Friends", icon: <UserPlus className="w-5 h-5" /> },
+    { to: "/messages", label: "Messages", icon: <MessageCircle className="w-5 h-5" /> },
   ];
 
   return (
@@ -75,8 +114,9 @@ export const Navbar: React.FC = () => {
               <Link
                 key={link.to}
                 to={link.to}
-                className="text-white hover:text-[#f34024] transition-colors font-medium"
+                className="flex items-center gap-2 text-white hover:text-[#f34024] transition-colors font-medium"
               >
+                {link.icon}
                 {link.label}
               </Link>
             ))}

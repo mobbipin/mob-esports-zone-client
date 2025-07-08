@@ -12,6 +12,19 @@ export interface User {
   bio?: string;
   rank?: string;
   teamId?: string;
+  isPublic?: number;
+  banned?: number; // Added banned property
+  playerProfile?: {
+    achievements?: string[];
+    bio?: string;
+    region?: string;
+    gameId?: string;
+    avatar?: string;
+    rank?: string;
+    winRate?: number;
+    kills?: number;
+    social?: any;
+  };
 }
 
 interface AuthContextType {
@@ -124,7 +137,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, setUserData }}>
-      {children}
+      {user && user.banned === 1 ? (
+        <div style={{ minHeight: '100vh', background: '#1a1a1e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#19191d', padding: 40, borderRadius: 16, boxShadow: '0 4px 32px #0008', border: '2px solid #f34024', textAlign: 'center' }}>
+            <h1 style={{ color: '#f34024', fontSize: 36, marginBottom: 24 }}>You are banned</h1>
+            <p style={{ color: '#fff', fontSize: 20, marginBottom: 16 }}>If this was a mistake, please contact <a href="mailto:admin@esportszone.mobbysc.com" style={{ color: '#f34024', textDecoration: 'underline' }}>admin@esportszone.mobbysc.com</a></p>
+          </div>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 };

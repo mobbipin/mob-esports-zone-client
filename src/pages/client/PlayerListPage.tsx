@@ -5,6 +5,9 @@ import { Button } from "../../components/ui/button";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { Skeleton } from "../../components/ui/skeleton";
+import { UserPlus, MessageCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Input } from "../../components/ui/input";
 
 const PlayerProfileDialog = ({ open, onClose, player }: { open: boolean; onClose: () => void; player: any }) => {
   if (!player) return null;
@@ -73,13 +76,23 @@ const PlayerListPage: React.FC = () => {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [myTeam, setMyTeam] = useState<any>(null);
+  const navigate = useNavigate();
+  const [requestSent, setRequestSent] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchPlayers = async () => {
       setLoading(true);
       try {
-        const res: any = await apiFetch("/players");
-        setPlayers(res.data || []);
+        let query = `/players?page=${page}&limit=${limit}`;
+        if (search) query += `&search=${encodeURIComponent(search)}`;
+        const res: any = await apiFetch(query);
+        setPlayers(Array.isArray(res.data) ? res.data : []);
+        setTotal(res.total || (Array.isArray(res.data) ? res.data.length : 0));
       } catch {
         setPlayers([]);
       } finally {
@@ -87,11 +100,25 @@ const PlayerListPage: React.FC = () => {
       }
     };
     fetchPlayers();
-  }, []);
+  }, [page, search]);
 
   useEffect(() => {
+    // Fetch friend requests for current user
+    const fetchRequests = async () => {
+      try {
+        const res = await apiFetch<any>("/friends");
+        setFriendRequests(res.data || []);
+      } catch {
+        setFriendRequests([]);
+      }
+    };
+    fetchRequests();
+  }, [user]);
+
+  // Only fetch myTeam if user is logged in
+  useEffect(() => {
+    if (!user || !user.teamId) return;
     const fetchMyTeam = async () => {
-      if (!user?.teamId) return;
       try {
         const res: any = await apiFetch(`/teams/my`);
         setMyTeam(res.data);
@@ -100,9 +127,9 @@ const PlayerListPage: React.FC = () => {
       }
     };
     fetchMyTeam();
-  }, [user?.teamId]);
+  }, [user && user.teamId]);
 
-  const isOwner = myTeam && myTeam.ownerId === user?.id;
+  const isOwner = user && myTeam && myTeam.ownerId === user.id;
 
   const handleInvite = async (player: any) => {
     if (!myTeam || !isOwner) return;
@@ -117,6 +144,39 @@ const PlayerListPage: React.FC = () => {
     }
   };
 
+  const sendFriendRequest = async (friendId: string) => {
+    if (!user) return;
+    try {
+      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ friendId }) });
+      addToast("Friend request sent", "success");
+      setFriendRequests((prev) => [...prev, { friendId, userId: user.id, status: 'pending' }]);
+    } catch (err: any) {
+      addToast(err.message || "Failed to send request", "error");
+    }
+  };
+
+  const cancelFriendRequest = async (friendId: string) => {
+    const req = friendRequests.find((f) => (f.friendId === friendId || f.userId === friendId) && f.status === "pending");
+    if (!req) return;
+    try {
+      await apiFetch(`/friends/${req.id}/cancel`, { method: "DELETE" });
+      addToast("Friend request canceled", "success");
+      setFriendRequests((prev) => prev.filter((f) => f.id !== req.id));
+    } catch (err: any) {
+      addToast(err.message || "Failed to cancel request", "error");
+    }
+  };
+  const getFriendStatus = (playerId: string) => {
+    if (!user) return "none";
+    const req = friendRequests.find((f) => (f.friendId === playerId || f.userId === playerId));
+    if (!req) return "none";
+    if (req.status === "accepted") return "friends";
+    if (req.status === "pending") return req.userId === user.id ? "requested" : "incoming";
+    return "none";
+  };
+
+  const getPlayerInfo = (playerId: string) => players.find((p) => p.id === playerId);
+
   if (loading) return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -128,50 +188,122 @@ const PlayerListPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-white mb-8">Players</h1>
-        {loading ? (
-          <div className="text-center text-white py-12">Loading players...</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {players.map((player) => (
-              <Card key={player.id} className="bg-[#15151a] border-[#292932] hover:shadow-lg transition">
-                <CardContent className="flex flex-col items-center p-6">
-                  <img
-                    src={player.playerProfile?.avatar || "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"}
-                    alt="Avatar"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-[#f34024] mb-2"
-                  />
-                  <h3 className="text-lg font-bold text-white mb-1">{player.displayName || player.username}</h3>
-                  <p className="text-gray-400 mb-1">{player.teamName || "No Team"}</p>
-                  <div className="flex flex-col space-y-2 w-full items-center">
-                    <Button
-                      variant="outline"
-                      className="bg-[#f34024] text-white border-none hover:bg-[#f34024]/90 transition w-full"
-                      onClick={() => { setSelectedPlayer(player); setDialogOpen(true); }}
-                    >
-                      View Profile
-                    </Button>
-                    {isOwner && !player.teamName && player.id !== user?.id && (
+        <div className="flex items-center gap-4 mb-6">
+          <Input
+            type="text"
+            placeholder="Search players..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-80"
+          />
+        </div>
+        <div className="overflow-x-auto rounded-lg shadow">
+          <table className="min-w-full bg-[#15151a] border border-[#292932]">
+            <thead>
+              <tr>
+                <th className="p-4 text-left text-white font-semibold">Avatar</th>
+                <th className="p-4 text-left text-white font-semibold">Username</th>
+                <th className="p-4 text-left text-white font-semibold">Team</th>
+                <th className="p-4 text-left text-white font-semibold">Rank</th>
+                <th className="p-4 text-left text-white font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((player) => (
+                <tr key={player.id} className="border-b border-[#292932] hover:bg-[#19191d]">
+                  <td className="p-4">
+                    <img
+                      src={player.playerProfile?.avatar || "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"}
+                      alt="Avatar"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-[#f34024]"
+                    />
+                  </td>
+                  <td className="p-4 text-white font-medium">{player.displayName || player.username}</td>
+                  <td className="p-4 text-gray-400">{player.teamName || "No Team"}</td>
+                  <td className="p-4 text-gray-400">{player.playerProfile?.rank || "Unranked"}</td>
+                  <td className="p-4">
+                    <div className="flex gap-2">
                       <Button
+                        size="sm"
                         variant="outline"
-                        className="border-[#f34024] text-[#f34024] hover:bg-[#f34024]/10 hover:text-white transition w-full"
-                        onClick={() => handleInvite(player)}
+                        className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                        onClick={() => { setSelectedPlayer(player); setDialogOpen(true); }}
                       >
-                        Invite to Team
+                        View
                       </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      {user && player.id !== user.id && !player.banned && (
+                        <>
+                          {(getFriendStatus(player.id) === "friends" || (player.isPublic !== 0 && getFriendStatus(player.id) !== "incoming")) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                              onClick={() => navigate(`/messages?user=${player.id}&name=${encodeURIComponent(player.displayName || player.username)}&avatar=${encodeURIComponent(player.avatar || player.playerProfile?.avatar || '')}`)}
+                            >
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              Message
+                            </Button>
+                          )}
+                          {getFriendStatus(player.id) === "none" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
+                              onClick={() => sendFriendRequest(player.id)}
+                            >
+                              <UserPlus className="w-4 h-4 mr-1" />
+                              Add Friend
+                            </Button>
+                          )}
+                          {getFriendStatus(player.id) === "requested" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-white"
+                              onClick={() => cancelFriendRequest(player.id)}
+                            >
+                              Cancel Request
+                            </Button>
+                          )}
+                          {getFriendStatus(player.id) === "friends" && (
+                            <span className="inline-block px-3 py-1 rounded bg-green-700 text-white text-xs font-semibold">Friends</span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* Pagination */}
+        <div className="flex items-center justify-between mt-6">
+          <div className="text-gray-400 text-sm">
+            Showing {players.length} of {total} players
           </div>
-        )}
-        <PlayerProfileDialog
-          open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          player={selectedPlayer}
-        />
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              className="border-[#292932] hover:text-white hover:bg-[#292932]"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              className="border-[#292932] hover:text-white hover:bg-[#292932]"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={players.length < limit}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+        <PlayerProfileDialog open={dialogOpen} onClose={() => setDialogOpen(false)} player={selectedPlayer} />
       </div>
     </div>
   );

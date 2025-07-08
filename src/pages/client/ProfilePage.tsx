@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CameraIcon, SaveIcon, UserIcon, GamepadIcon, MapPinIcon, TrophyIcon } from "lucide-react";
+import { CameraIcon, SaveIcon, UserIcon, GamepadIcon, MapPinIcon, TrophyIcon, UserPlus, MessageCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 export const ProfilePage: React.FC = () => {
   const { user, setUserData } = useAuth();
@@ -24,6 +25,10 @@ export const ProfilePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
+  const navigate = useNavigate();
+
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [tournamentHistory, setTournamentHistory] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -43,13 +48,24 @@ export const ProfilePage: React.FC = () => {
         });
       })
       .catch(err => setError(typeof err === "string" ? err : "Failed to load profile"))
-      .finally(async () => {
-        // Always refresh user context on mount
-        const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
-        setUserData(me.data);
+      .finally(() => {
         setLoading(false);
       });
-  }, [user?.id, user?.username, user?.email, setUserData]);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    // Fetch achievements from user.playerProfile
+    if (user.playerProfile && Array.isArray(user.playerProfile.achievements)) {
+      setAchievements(user.playerProfile.achievements);
+    } else {
+      setAchievements([]);
+    }
+    // Fetch tournament history from API
+    apiFetch<{ status: boolean; data: any[] }>(`/players/${user.id}/tournaments`)
+      .then(res => setTournamentHistory(res.data))
+      .catch(() => setTournamentHistory([]));
+  }, [user?.id, user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -138,23 +154,6 @@ export const ProfilePage: React.FC = () => {
       setAvatarUploading(false);
     }
   };
-
-  const achievements = [
-    { id: 1, title: "First Victory", description: "Won your first tournament", icon: "🏆", earned: true },
-    { id: 2, title: "Team Player", description: "Joined a team", icon: "👥", earned: true },
-    { id: 3, title: "Rising Star", description: "Won 3 tournaments in a month", icon: "⭐", earned: true },
-    { id: 4, title: "Veteran", description: "Participated in 10+ tournaments", icon: "🎖️", earned: true },
-    { id: 5, title: "Champion", description: "Win a major championship", icon: "👑", earned: false },
-    { id: 6, title: "Legendary", description: "Reach top 10 global ranking", icon: "🔥", earned: false }
-  ];
-
-  const tournamentHistory = [
-    { id: 1, name: "PUBG Mobile Championship", date: "Dec 2024", position: "2nd", prize: "$2,500" },
-    { id: 2, name: "Free Fire Solo Tournament", date: "Nov 2024", position: "1st", prize: "$1,000" },
-    { id: 3, name: "COD Mobile Duo", date: "Nov 2024", position: "3rd", prize: "$500" },
-    { id: 4, name: "Valorant Team Cup", date: "Oct 2024", position: "1st", prize: "$3,000" },
-    { id: 5, name: "Mobile Legends Tournament", date: "Oct 2024", position: "4th", prize: "$200" }
-  ];
 
   const regions = ["NA", "EU", "ASIA", "OCE", "SA", "AF"];
   const ranks = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"];

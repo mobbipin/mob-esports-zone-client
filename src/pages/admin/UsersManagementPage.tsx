@@ -7,6 +7,22 @@ import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
 
+// Add Modal component (styled like DeleteDialog)
+const Modal = ({ open, onClose, title, children }: { open: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+      <div className="bg-[#19191d] p-8 rounded-xl shadow-2xl w-full max-w-md border border-[#292932]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-lg text-white font-semibold">{title}</div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        <div>{children}</div>
+      </div>
+    </div>
+  );
+};
+
 export const UsersManagementPage: React.FC = () => {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,6 +35,13 @@ export const UsersManagementPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 10;
+  const [viewUser, setViewUser] = useState<any | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [banDialog, setBanDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
+  const [promoteDialog, setPromoteDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
+  const [bulkBanDialog, setBulkBanDialog] = useState(false);
+  const [unbanDialog, setUnbanDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -42,12 +65,16 @@ export const UsersManagementPage: React.FC = () => {
     // eslint-disable-next-line
   }, [page, searchTerm]);
 
-  const filteredUsers = users.filter(user => {
+  // Map banned field to status for admin UI
+  const mappedUsers = users.map(user => ({
+    ...user,
+    status: user.banned === 1 ? 'banned' : (user.status || 'active'),
+  }));
+  const filteredUsers = mappedUsers.filter(user => {
     const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     const matchesStatus = statusFilter === "all" || user.status === statusFilter;
-    
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -67,15 +94,88 @@ export const UsersManagementPage: React.FC = () => {
     }
   };
 
-  const handleBanUser = (userId: number, username: string) => {
-    if (confirm(`Are you sure you want to ban ${username}?`)) {
-      addToast(`User ${username} has been banned`, "success");
+  const handleViewUser = async (userId: string) => {
+    setActionLoading(true);
+    try {
+      const res = await apiFetch<any>(`/players/${userId}`);
+      setViewUser(res.data);
+      setViewModalOpen(true);
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || 'Failed to load user details', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handlePromoteUser = (userId: number, username: string) => {
-    if (confirm(`Are you sure you want to promote ${username} to admin?`)) {
-      addToast(`User ${username} has been promoted to admin`, "success");
+  const handleBanUser = (userId: string, username: string) => {
+    setBanDialog({ open: true, userId, username });
+  };
+  const confirmBanUser = async () => {
+    if (!banDialog.userId) return;
+    setActionLoading(true);
+    try {
+      await apiFetch(`/admin/users/${banDialog.userId}/ban`, { method: 'PUT' });
+      addToast(`User ${banDialog.username} has been banned`, 'success');
+      fetchUsers();
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || 'Failed to ban user', 'error');
+    } finally {
+      setBanDialog({ open: false });
+      setActionLoading(false);
+    }
+  };
+
+  const handlePromoteUser = (userId: string, username: string) => {
+    setPromoteDialog({ open: true, userId, username });
+  };
+  const confirmPromoteUser = async () => {
+    if (!promoteDialog.userId) return;
+    setActionLoading(true);
+    try {
+      await apiFetch(`/users/${promoteDialog.userId}`, { method: 'PUT', body: JSON.stringify({ role: 'admin' }) });
+      addToast(`User ${promoteDialog.username} has been promoted to admin`, 'success');
+      fetchUsers();
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || 'Failed to promote user', 'error');
+    } finally {
+      setPromoteDialog({ open: false });
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkBan = () => {
+    setBulkBanDialog(true);
+  };
+  const confirmBulkBan = async () => {
+    setActionLoading(true);
+    try {
+      await Promise.all(selectedUsers.map(id => apiFetch(`/admin/users/${id}/ban`, { method: 'PUT' })));
+      addToast(`${selectedUsers.length} user(s) banned`, 'success');
+      setSelectedUsers([]);
+      fetchUsers();
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || 'Failed to ban users', 'error');
+    } finally {
+      setBulkBanDialog(false);
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnbanUser = (userId: string, username: string) => {
+    setUnbanDialog({ open: true, userId, username });
+  };
+  const confirmUnbanUser = async () => {
+    if (!unbanDialog.userId) return;
+    setActionLoading(true);
+    try {
+      await apiFetch(`/admin/users/${unbanDialog.userId}/unban`, { method: 'PUT' });
+      addToast(`User ${unbanDialog.username} has been unbanned`, 'success');
+      fetchUsers();
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || 'Failed to unban user', 'error');
+    } finally {
+      setUnbanDialog({ open: false });
+      setActionLoading(false);
     }
   };
 
@@ -192,7 +292,7 @@ export const UsersManagementPage: React.FC = () => {
                   <MailIcon className="w-4 h-4 mr-2" />
                   Send Message
                 </Button>
-                <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white">
+                <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white" onClick={handleBulkBan}>
                   <BanIcon className="w-4 h-4 mr-2" />
                   Ban Selected
                 </Button>
@@ -290,29 +390,42 @@ export const UsersManagementPage: React.FC = () => {
                             size="sm" 
                             variant="outline"
                             className="border-[#292932] hover:text-white hover:bg-[#292932]"
+                            onClick={() => handleViewUser(user.id)}
                           >
                             View
                           </Button>
-                          {user.role === "player" && user.status !== "banned" && (
-                            <Button 
+                          {user.status === "banned" ? (
+                            <Button
                               size="sm"
-                              onClick={() => handlePromoteUser(user.id, user.username)}
-                              className="bg-purple-600 hover:bg-purple-700 text-white"
+                              onClick={() => handleUnbanUser(user.id, user.username)}
+                              className="bg-green-600 hover:bg-green-700 text-white"
                             >
-                              <ShieldIcon className="w-3 h-3 mr-1" />
-                              Promote
+                              Unban
                             </Button>
-                          )}
-                          {user.status !== "banned" && (
-                            <Button 
-                              size="sm"
-                              onClick={() => handleBanUser(user.id, user.username)}
-                              variant="outline"
-                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                            >
-                              <BanIcon className="w-3 h-3 mr-1" />
-                              Ban
-                            </Button>
+                          ) : (
+                            <>
+                              {user.role === "player" && user.status !== "banned" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handlePromoteUser(user.id, user.username)}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                                >
+                                  <ShieldIcon className="w-3 h-3 mr-1" />
+                                  Promote
+                                </Button>
+                              )}
+                              {user.status !== "banned" && (
+                                <Button 
+                                  size="sm"
+                                  onClick={() => handleBanUser(user.id, user.username)}
+                                  variant="outline"
+                                  className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                                >
+                                  <BanIcon className="w-3 h-3 mr-1" />
+                                  Ban
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -346,6 +459,75 @@ export const UsersManagementPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Modals/Dialogs */}
+      <Modal open={viewModalOpen} onClose={() => setViewModalOpen(false)} title="User Details">
+        {viewUser && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <img src={viewUser.avatar} alt={viewUser.username} className="w-16 h-16 rounded-full" />
+              <div>
+                <h3 className="text-xl font-bold text-white">{viewUser.username}</h3>
+                <p className="text-gray-400 text-sm">{viewUser.email}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-gray-400 text-sm">Role:</p>
+                <p className="text-white font-medium">{viewUser.role || "Player"}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Status:</p>
+                <p className="text-white font-medium">{viewUser.status || "Active"}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Tournaments:</p>
+                <p className="text-white font-medium">{viewUser.tournaments || 0}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Wins:</p>
+                <p className="text-white font-medium">{viewUser.wins || 0}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Last Active:</p>
+                <p className="text-white font-medium">{viewUser.lastActive}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Join Date:</p>
+                <p className="text-white font-medium">{viewUser.joinDate}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal open={banDialog.open} onClose={() => setBanDialog({ open: false })} title="Ban User">
+        <div className="text-white">Are you sure you want to ban user <b>{banDialog.username}</b>? This action cannot be undone.</div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button onClick={() => setBanDialog({ open: false })} variant="outline">Cancel</Button>
+          <Button onClick={confirmBanUser} className="bg-red-600 text-white" disabled={actionLoading}>{actionLoading ? "Banning..." : "Ban"}</Button>
+        </div>
+      </Modal>
+      <Modal open={promoteDialog.open} onClose={() => setPromoteDialog({ open: false })} title="Promote User">
+        <div>Are you sure you want to promote user <b>{promoteDialog.username}</b> to admin?</div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button onClick={() => setPromoteDialog({ open: false })} variant="outline">Cancel</Button>
+          <Button onClick={confirmPromoteUser} className="bg-purple-600 text-white" disabled={actionLoading}>{actionLoading ? "Promoting..." : "Promote"}</Button>
+        </div>
+      </Modal>
+      <Modal open={bulkBanDialog} onClose={() => setBulkBanDialog(false)} title="Ban Users">
+        <div className="text-white">Are you sure you want to ban <b>{selectedUsers.length}</b> user(s)? This action cannot be undone.</div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button onClick={() => setBulkBanDialog(false)} variant="outline">Cancel</Button>
+          <Button onClick={confirmBulkBan} className="bg-red-600 text-white" disabled={actionLoading}>{actionLoading ? "Banning..." : "Ban All"}</Button>
+        </div>
+      </Modal>
+      <Modal open={unbanDialog.open} onClose={() => setUnbanDialog({ open: false })} title="Unban User">
+        <div className="text-white">Are you sure you want to unban user <b>{unbanDialog.username}</b>?</div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button onClick={() => setUnbanDialog({ open: false })} variant="outline">Cancel</Button>
+          <Button onClick={confirmUnbanUser} className="bg-green-600 text-white" disabled={actionLoading}>{actionLoading ? "Unbanning..." : "Unban"}</Button>
+        </div>
+      </Modal>
     </div>
   );
 };

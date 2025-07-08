@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { TrophyIcon, UsersIcon, CalendarIcon, TrendingUpIcon, StarIcon, ArrowRightIcon } from "lucide-react";
+import { TrophyIcon, UsersIcon, CalendarIcon, TrendingUpIcon, StarIcon, ArrowRightIcon, UserPlus, MessageCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -289,6 +289,26 @@ export const ClientDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             )}
+          </div>
+        </div>
+
+        {/* Add a section for Friends and Messages quick access */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+          <div className="bg-[#15151a] border border-[#292932] rounded-xl p-6 flex items-center gap-4">
+            <UserPlus className="w-10 h-10 text-[#f34024]" />
+            <div className="flex-1">
+              <div className="text-lg text-white font-semibold mb-1">Friends</div>
+              <div className="text-gray-400 text-sm mb-2">Manage your friends and requests</div>
+              <a href="/friends" className="text-[#f34024] hover:underline">Go to Friends</a>
+            </div>
+          </div>
+          <div className="bg-[#15151a] border border-[#292932] rounded-xl p-6 flex items-center gap-4">
+            <MessageCircle className="w-10 h-10 text-[#f34024]" />
+            <div className="flex-1">
+              <div className="text-lg text-white font-semibold mb-1">Messages</div>
+              <div className="text-gray-400 text-sm mb-2">Chat with friends and view group messages</div>
+              <a href="/messages" className="text-[#f34024] hover:underline">Go to Messages</a>
+            </div>
           </div>
         </div>
       </div>
