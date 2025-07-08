@@ -6,6 +6,7 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const CreateTeamPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,16 @@ export const CreateTeamPage: React.FC = () => {
   const [logoUploading, setLogoUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <Skeleton height={300} className="mb-4" />
+        <Skeleton height={100} className="mb-4" />
+      </div>
+    </div>
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -62,6 +73,7 @@ export const CreateTeamPage: React.FC = () => {
         body: JSON.stringify(payload)
       });
       addToast("Team created!", "success");
+      // Always refresh user data after team creation
       const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
       setUserData(me.data);
       navigate("/dashboard/manage-team");

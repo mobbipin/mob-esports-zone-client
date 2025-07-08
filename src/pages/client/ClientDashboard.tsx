@@ -6,9 +6,10 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
 import { useToast } from "../../contexts/ToastContext";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const ClientDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, setUserData } = useAuth();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,6 @@ export const ClientDashboard: React.FC = () => {
         setPlayerStats(playerRes.data);
 
         // Fetch team info if user has a team
-        let teamData = null;
         if (user.teamId) {
           const teamRes: any = await apiFetch(`/teams/my`);
           setTeam(teamRes.data);
@@ -42,7 +42,6 @@ export const ClientDashboard: React.FC = () => {
         setUpcomingTournaments(tournamentsRes.data || []);
 
         // Fetch recent matches (from tournaments the player participated in)
-        // This is a simplified example; you may want to aggregate from multiple tournaments
         let matches: any[] = [];
         if (tournamentsRes.data && tournamentsRes.data.length > 0) {
           for (const t of tournamentsRes.data) {
@@ -80,7 +79,26 @@ export const ClientDashboard: React.FC = () => {
     addToast("Invite rejected!", "success");
   };
 
-  if (loading) return <div className="text-center text-white py-12">Loading dashboard...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} height={100} />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Skeleton height={200} />
+            <Skeleton height={200} />
+          </div>
+          <div className="space-y-8">
+            <Skeleton height={120} />
+            <Skeleton height={120} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   if (error) return <div className="text-center text-red-500 py-12">{error}</div>;
 
   // Stats

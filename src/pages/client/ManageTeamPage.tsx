@@ -7,6 +7,7 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 const PlayerProfileDialog = ({ open, onClose, player }: { open: boolean; onClose: () => void; player: any }) => {
   if (!player) return null;
@@ -70,7 +71,7 @@ const PlayerProfileDialog = ({ open, onClose, player }: { open: boolean; onClose
 
 export const ManageTeamPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, setUserData } = useAuth();
   const { addToast } = useToast();
   const [team, setTeam] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +84,34 @@ export const ManageTeamPage: React.FC = () => {
   const [invites, setInvites] = useState<any[]>([]);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
+
+  // Add a function to refresh team and invites and user context
+  const refreshTeamAndInvites = async () => {
+    if (!user?.teamId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res: any = await apiFetch(`/teams/my`);
+      setTeam(res.data);
+      setFormData({
+        name: res.data.name || "",
+        tag: res.data.tag || "",
+        bio: res.data.bio || "",
+        region: res.data.region || "",
+        logoUrl: res.data.logoUrl || ""
+      });
+      // Fetch invites for this team
+      const invitesRes: any = await apiFetch(`/teams/${res.data.id}/invites`);
+      setInvites(invitesRes.data || []);
+      // Always refresh user context after team change
+      const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
+      setUserData(me.data);
+    } catch (err: any) {
+      setError(err?.toString() || "Failed to load team");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -147,6 +176,7 @@ export const ManageTeamPage: React.FC = () => {
       });
       addToast("Team updated!", "success");
       setIsEditing(false);
+      refreshTeamAndInvites(); // Call refresh after successful update
     } catch (err: any) {
       setError(err?.toString() || "Failed to update team");
     } finally {
@@ -165,9 +195,7 @@ export const ManageTeamPage: React.FC = () => {
       });
       addToast("Player invited!", "success");
       setInviteEmail("");
-      // Refresh invites after successful invite
-      const invitesRes: any = await apiFetch(`/teams/${team.id}/invites`);
-      setInvites(invitesRes.data || []);
+      refreshTeamAndInvites(); // Call refresh after successful invite
     } catch (err: any) {
       addToast(err.message || err?.toString() || "Failed to invite player", "error");
     } finally {
@@ -175,7 +203,16 @@ export const ManageTeamPage: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center text-white py-12">Loading team...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <Skeleton height={200} className="mb-4" />
+        <Skeleton height={100} className="mb-4" />
+        <Skeleton height={100} className="mb-4" />
+      </div>
+    </div>
+  );
   if (error) return <div className="text-center text-red-500 py-12">{error}</div>;
   if (!user?.teamId) {
     return (
@@ -286,9 +323,7 @@ export const ManageTeamPage: React.FC = () => {
                       body: JSON.stringify({ newOwnerId })
                     });
                     addToast("Ownership transferred!", "success");
-                    // Refetch team data to update owner
-                    const res: any = await apiFetch(`/teams/my`);
-                    setTeam(res.data);
+                    refreshTeamAndInvites(); // Call refresh after successful transfer
                   } catch (err: any) {
                     addToast(err.message || err?.toString() || "Failed to transfer ownership", "error");
                   }

@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const ProfilePage: React.FC = () => {
   const { user, setUserData } = useAuth();
@@ -42,8 +43,13 @@ export const ProfilePage: React.FC = () => {
         });
       })
       .catch(err => setError(typeof err === "string" ? err : "Failed to load profile"))
-      .finally(() => setLoading(false));
-  }, [user?.id, user?.username, user?.email]);
+      .finally(async () => {
+        // Always refresh user context on mount
+        const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
+        setUserData(me.data);
+        setLoading(false);
+      });
+  }, [user?.id, user?.username, user?.email, setUserData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -153,7 +159,21 @@ export const ProfilePage: React.FC = () => {
   const regions = ["NA", "EU", "ASIA", "OCE", "SA", "AF"];
   const ranks = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"];
 
-  if (loading) return <div className="text-center text-white">Loading profile...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Skeleton height={300} />
+          </div>
+          <div>
+            <Skeleton height={300} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   if (error) return <div className="text-center text-red-500">{error}</div>;
 
   return (

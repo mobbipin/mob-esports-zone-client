@@ -6,6 +6,10 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export const TournamentCreationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,9 +24,9 @@ export const TournamentCreationPage: React.FC = () => {
     type: "solo",
     maxParticipants: "",
     prize: "",
-    startDate: "",
-    endDate: "",
-    registrationDeadline: "",
+    startDate: null,
+    endDate: null,
+    registrationDeadline: null,
     rules: "",
     bannerImage: ""
   });
@@ -86,6 +90,20 @@ export const TournamentCreationPage: React.FC = () => {
     } finally {
       setBannerUploading(false);
     }
+  };
+
+  const validate = () => {
+    const errors: any = {};
+    if (!formData.title || formData.title.length < 2) errors.title = ["Title must be at least 2 characters."];
+    if (!formData.game) errors.game = ["Game is required."];
+    if (!formData.type) errors.type = ["Type is required."];
+    if (!formData.startDate) errors.startDate = ["Start date is required."];
+    if (!formData.endDate) errors.endDate = ["End date is required."];
+    if (formData.startDate && formData.endDate && new Date(formData.startDate) >= new Date(formData.endDate)) errors.endDate = ["End date must be after start date."];
+    if (formData.bannerUrl && !/^https?:\/\/.+/.test(formData.bannerUrl)) errors.bannerUrl = ["Banner URL must be a valid URL."];
+    if (formData.maxParticipants && (isNaN(Number(formData.maxParticipants)) || Number(formData.maxParticipants) < 2)) errors.maxParticipants = ["Max participants must be a number >= 2."];
+    if (formData.prize && isNaN(Number(formData.prize))) errors.prize = ["Prize pool must be a number."];
+    return errors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -222,17 +240,12 @@ export const TournamentCreationPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Description *
-                  </label>
-                  <textarea
-                    name="description"
+                  <label className="block text-sm font-medium text-white mb-2">Description *</label>
+                  <ReactQuill
+                    theme="snow"
                     value={formData.description}
-                    onChange={handleChange}
-                    rows={4}
-                    placeholder="Describe your tournament..."
-                    className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none"
-                    required
+                    onChange={val => setFormData(prev => ({ ...prev, description: val }))}
+                    className="bg-[#19191d] text-white"
                   />
                   {fieldErrors.description && fieldErrors.description.map((err, idx) => (
                     <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
@@ -339,15 +352,15 @@ export const TournamentCreationPage: React.FC = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Start Date & Time *
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    name="startDate"
-                    value={formData.startDate}
-                    onChange={handleChange}
-                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                  <label className="block text-sm font-medium text-white mb-2">Start Date & Time *</label>
+                  <DatePicker
+                    selected={formData.startDate}
+                    onChange={date => setFormData(prev => ({ ...prev, startDate: date }))}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    dateFormat="yyyy-MM-dd HH:mm"
+                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
                     required
                   />
                   {fieldErrors.startDate && fieldErrors.startDate.map((err, idx) => (
@@ -356,15 +369,15 @@ export const TournamentCreationPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    End Date & Time *
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    name="endDate"
-                    value={formData.endDate}
-                    onChange={handleChange}
-                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                  <label className="block text-sm font-medium text-white mb-2">End Date & Time *</label>
+                  <DatePicker
+                    selected={formData.endDate}
+                    onChange={date => setFormData(prev => ({ ...prev, endDate: date }))}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    dateFormat="yyyy-MM-dd HH:mm"
+                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
                     required
                   />
                   {fieldErrors.endDate && fieldErrors.endDate.map((err, idx) => (
@@ -373,15 +386,15 @@ export const TournamentCreationPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Registration Deadline *
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    name="registrationDeadline"
-                    value={formData.registrationDeadline}
-                    onChange={handleChange}
-                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                  <label className="block text-sm font-medium text-white mb-2">Registration Deadline *</label>
+                  <DatePicker
+                    selected={formData.registrationDeadline}
+                    onChange={date => setFormData(prev => ({ ...prev, registrationDeadline: date }))}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    dateFormat="yyyy-MM-dd HH:mm"
+                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
                     required
                   />
                   {fieldErrors.registrationDeadline && fieldErrors.registrationDeadline.map((err, idx) => (

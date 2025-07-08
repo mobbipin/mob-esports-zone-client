@@ -295,7 +295,7 @@ export const PostsManagementPage: React.FC = () => {
             <Card key={post.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
               <div className="relative">
                 <img 
-                  src={post.image} 
+                  src={post.imageUrl || post.image} 
                   alt={post.title}
                   className="w-full h-40 object-cover"
                 />

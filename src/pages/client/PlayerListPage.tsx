@@ -4,6 +4,7 @@ import { Card, CardContent, Dialog, DialogContent, DialogTitle } from "../../com
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
+import { Skeleton } from "../../components/ui/skeleton";
 
 const PlayerProfileDialog = ({ open, onClose, player }: { open: boolean; onClose: () => void; player: any }) => {
   if (!player) return null;
@@ -115,6 +116,15 @@ const PlayerListPage: React.FC = () => {
       addToast(err.message || err?.toString() || "Failed to send invite", "error");
     }
   };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        {[...Array(10)].map((_, i) => <Skeleton key={i} height={60} className="mb-4" />)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">

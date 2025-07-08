@@ -183,7 +183,7 @@ export const AdminTournamentsPage: React.FC = () => {
             <Card key={tournament.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
               <div className="relative">
                 <img 
-                  src={tournament.bannerUrl || tournament.image || "/assets/logo.png"} 
+                  src={tournament.imageUrl || tournament.image || "/assets/logo.png"} 
                   alt={tournament.name || tournament.title}
                   className="w-full h-40 object-cover"
                 />

@@ -87,7 +87,7 @@ export const NewsPage: React.FC = () => {
                 <div className="md:flex">
                   <div className="md:w-1/2">
                     <img 
-                      src={featuredArticle.imageUrl || featuredArticle.image || ""} 
+                      src={featuredArticle.thumbnail	 || featuredArticle.image || ""} 
                       alt={featuredArticle.title}
                       className="w-full h-64 md:h-full object-cover"
                     />
@@ -132,7 +132,7 @@ export const NewsPage: React.FC = () => {
                 <Card key={article.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-all duration-300 hover:transform hover:scale-105">
                   <div className="relative">
                     <img 
-                      src={article.imageUrl || article.image || ""} 
+                      src={article.thumbnail	 || article.image || ""} 
                       alt={article.title}
                       className="w-full h-32 object-cover"
                     />

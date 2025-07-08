@@ -34,6 +34,9 @@ export const TournamentViewPage: React.FC = () => {
     <div className="max-w-3xl mx-auto py-8">
       <Card className="bg-[#15151a] border-[#292932]">
         <CardContent className="p-6">
+          {tournament.imageUrl && (
+            <img src={tournament.imageUrl} alt="Tournament Banner" className="mb-6 rounded-lg max-h-64 mx-auto" />
+          )}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-white">{tournament.name}</h2>
             <Button onClick={() => navigate(-1)} variant="outline" className="border-[#292932] text-white">Back</Button>

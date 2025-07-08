@@ -6,9 +6,10 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const TeamPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, setUserData } = useAuth();
   const { addToast } = useToast();
   const [team, setTeam] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -33,8 +34,27 @@ export const TeamPage: React.FC = () => {
     apiFetch<{ status: boolean; data: any }>(`/teams/my`)
       .then(res => setTeam(res.data))
       .catch(err => setError(typeof err === "string" ? err : "Failed to load team"))
-      .finally(() => setLoading(false));
-  }, [user?.teamId]);
+      .finally(async () => {
+        // Always refresh user context on mount
+        const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
+        setUserData(me.data);
+        setLoading(false);
+      });
+  }, [user?.teamId, setUserData]);
+
+  // Add a function to refresh team info after actions
+  const refreshTeam = async () => {
+    if (!user?.teamId) return;
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ status: boolean; data: any }>(`/teams/my`);
+      setTeam(res.data);
+    } catch (err) {
+      setError(typeof err === "string" ? err : "Failed to load team");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Create team
   const handleCreateTeam = async () => {
@@ -49,6 +69,7 @@ export const TeamPage: React.FC = () => {
         body: JSON.stringify(payload),
       });
       addToast("Team created!", "success");
+      refreshTeam(); // Call refreshTeam after successful creation
       // Optionally refetch or redirect
     } catch (err: any) {
       addToast(err.message || err?.toString() || "Failed to create team", "error");
@@ -64,6 +85,7 @@ export const TeamPage: React.FC = () => {
         body: JSON.stringify(formData),
       });
       addToast("Team updated!", "success");
+      refreshTeam(); // Call refreshTeam after successful update
       setIsEditing(false);
       // Optionally refetch
     } catch (err: any) {
@@ -77,6 +99,7 @@ export const TeamPage: React.FC = () => {
     try {
       await apiFetch(`/teams/${team.id}`, { method: "DELETE" });
       addToast("Team deleted!", "success");
+      refreshTeam(); // Call refreshTeam after successful deletion
       // Optionally refetch or redirect
     } catch (err: any) {
       addToast(err.message || err?.toString() || "Failed to delete team", "error");
@@ -112,6 +135,7 @@ export const TeamPage: React.FC = () => {
         method: "PUT",
         body: JSON.stringify({ logoUrl: res.data.url })
       });
+      refreshTeam(); // Call refreshTeam after successful logo upload
       // Optionally refetch
     } catch (err: any) {
       addToast(err.message || err?.toString() || "Failed to upload logo", "error");
@@ -120,7 +144,21 @@ export const TeamPage: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center text-white">Loading team...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <div className="flex items-center space-x-6 mb-8">
+          <Skeleton height={64} width={64} className="rounded-lg" />
+          <div className="flex-1">
+            <Skeleton height={32} width={200} className="mb-2" />
+            <Skeleton height={20} width={100} />
+          </div>
+        </div>
+        <Skeleton height={200} />
+      </div>
+    </div>
+  );
   if (error) return <div className="text-center text-red-500">{error}</div>;
   if (!user?.teamId) return <div className="text-center text-gray-400">You are not part of a team.</div>;
   if (!team) return null;
