@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const UsersManagementPage: React.FC = () => {
   const { addToast } = useToast();
@@ -103,6 +104,17 @@ export const UsersManagementPage: React.FC = () => {
         return "bg-gray-600";
     }
   };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(9)].map((_, i) => <Skeleton key={i} height={120} className="mb-4" />)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">

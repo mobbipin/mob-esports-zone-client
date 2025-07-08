@@ -10,6 +10,7 @@ import ReactQuill from "react-quill";
 // @ts-ignore
 import "react-quill/dist/quill.snow.css";
 import { useNavigate } from "react-router-dom";
+import { Skeleton } from "../../components/ui/skeleton";
 
 // Add a simple DeleteDialog component at the top of the file
 const DeleteDialog = ({ open, onConfirm, onCancel, message }: { open: boolean, onConfirm: () => void, onCancel: () => void, message: string }) => {
@@ -198,6 +199,17 @@ export const PostsManagementPage: React.FC = () => {
       setImageUploading(false);
     }
   };
+
+  if (loading && !error) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(9)].map((_, i) => <Skeleton key={i} height={220} className="mb-4" />)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">

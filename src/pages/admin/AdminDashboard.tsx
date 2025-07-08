@@ -4,6 +4,7 @@ import { UsersIcon, TrophyIcon, NewspaperIcon, TrendingUpIcon, CalendarIcon, Dol
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
@@ -47,6 +48,27 @@ export const AdminDashboard: React.FC = () => {
     { label: "View Analytics", href: "/admin/analytics", icon: TrendingUpIcon, color: "bg-purple-600" }
   ];
 
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} height={100} />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Skeleton height={200} />
+            <Skeleton height={200} />
+          </div>
+          <div className="space-y-8">
+            <Skeleton height={120} />
+            <Skeleton height={120} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -55,9 +77,7 @@ export const AdminDashboard: React.FC = () => {
         <p className="text-gray-400">Welcome to the MOB Esports Zone admin panel</p>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-gray-400">Loading dashboard...</div>
-      ) : error ? (
+      {error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
       ) : (
         <>

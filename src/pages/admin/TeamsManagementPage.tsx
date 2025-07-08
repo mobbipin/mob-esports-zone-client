@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 // Add a simple DeleteDialog component at the top of the file
 const DeleteDialog = ({ open, onConfirm, onCancel, message }: { open: boolean, onConfirm: () => void, onCancel: () => void, message: string }) => {
@@ -118,6 +119,17 @@ export const TeamsManagementPage: React.FC = () => {
         return "bg-gray-600";
     }
   };
+
+  if (loading && !error) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(9)].map((_, i) => <Skeleton key={i} height={120} className="mb-4" />)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">

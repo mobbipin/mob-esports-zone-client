@@ -4,6 +4,7 @@ import { CalendarIcon, UserIcon, ClockIcon, ArrowLeftIcon, ShareIcon, TagIcon } 
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const NewsDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +21,13 @@ export const NewsDetailPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="text-center text-white">Loading article...</div>;
+  if (loading) return (
+    <div className="max-w-3xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <Skeleton height={200} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+    </div>
+  );
   if (error) return <div className="text-center text-red-500">{error}</div>;
   if (!article) return null;
 

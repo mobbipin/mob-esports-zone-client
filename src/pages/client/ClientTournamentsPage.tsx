@@ -7,6 +7,7 @@ import { Input } from "../../components/ui/input";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const ClientTournamentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,6 +100,17 @@ export const ClientTournamentsPage: React.FC = () => {
     { id: "registered", label: "Registered", count: registeredTournaments.length },
     { id: "past", label: "Past", count: pastTournaments.length }
   ];
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#1a1a1e] py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Skeleton height={40} width={300} className="mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} height={180} className="mb-4" />)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">

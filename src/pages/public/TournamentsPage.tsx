@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const TournamentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,6 +42,15 @@ export const TournamentsPage: React.FC = () => {
         return "bg-gray-600";
     }
   };
+
+  if (loading) return (
+    <div className="max-w-6xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, i) => <Skeleton key={i} height={180} className="mb-4" />)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
@@ -99,9 +109,7 @@ export const TournamentsPage: React.FC = () => {
             </div>
           </div>
         </div>
-        {loading ? (
-          <div className="text-center text-white">Loading tournaments...</div>
-        ) : error ? (
+        {error ? (
           <div className="text-center text-red-500">{error}</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

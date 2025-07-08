@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const NewsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,6 +36,13 @@ export const NewsPage: React.FC = () => {
 
   const featuredArticle = filteredNews.find(article => article.featured);
   const regularArticles = filteredNews.filter(article => !article.featured);
+
+  if (loading) return (
+    <div className="max-w-4xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      {[...Array(6)].map((_, i) => <Skeleton key={i} height={100} className="mb-4" />)}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">

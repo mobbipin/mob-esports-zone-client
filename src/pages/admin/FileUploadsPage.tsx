@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { apiFetch, apiUpload } from "../../lib/api";
 import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
+import { Skeleton } from "../../components/ui/skeleton";
 
 const PAGE_SIZE = 10;
 
@@ -65,6 +66,13 @@ export const FileUploadsPage: React.FC = () => {
     }
   };
 
+  if (loading) return (
+    <div className="max-w-4xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      {[...Array(6)].map((_, i) => <Skeleton key={i} height={60} className="mb-4" />)}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,9 +81,7 @@ export const FileUploadsPage: React.FC = () => {
           <input type="file" onChange={handleFileChange} disabled={uploading} />
           {uploading && <span className="ml-2 text-yellow-500">Uploading...</span>}
         </div>
-        {loading ? (
-          <div className="text-white">Loading files...</div>
-        ) : error ? (
+        {error ? (
           <div className="text-red-500">{error}</div>
         ) : files.length === 0 ? (
           <div className="text-gray-400">No files uploaded yet.</div>

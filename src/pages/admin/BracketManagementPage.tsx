@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const BracketManagementPage: React.FC = () => {
   const { id } = useParams();
@@ -128,6 +129,15 @@ export const BracketManagementPage: React.FC = () => {
     }
   };
 
+  if (loading) return (
+    <div className="max-w-4xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <Skeleton height={200} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+    </div>
+  );
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -161,9 +171,7 @@ export const BracketManagementPage: React.FC = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-gray-400">Loading bracket...</div>
-      ) : error ? (
+      {error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

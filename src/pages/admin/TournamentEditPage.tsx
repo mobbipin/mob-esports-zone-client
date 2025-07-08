@@ -9,6 +9,7 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const TournamentEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -94,7 +95,13 @@ export const TournamentEditPage: React.FC = () => {
     return errors;
   };
 
-  if (loading) return <div className="text-center py-12 text-gray-400">Loading tournament...</div>;
+  if (loading) return (
+    <div className="max-w-2xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <Skeleton height={200} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+    </div>
+  );
   if (error) return <div className="text-center py-12 text-red-500">{error}</div>;
 
   return (

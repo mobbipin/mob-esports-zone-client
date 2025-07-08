@@ -9,6 +9,7 @@ import { apiFetch, apiUpload } from "../../lib/api";
 import ReactQuill from "react-quill";
 // @ts-ignore
 import "react-quill/dist/quill.snow.css";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const PostEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -87,7 +88,13 @@ export const PostEditPage: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-12 text-gray-400">Loading post...</div>;
+  if (loading) return (
+    <div className="max-w-2xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <Skeleton height={200} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+    </div>
+  );
   if (error) return <div className="text-center py-12 text-red-500">{error}</div>;
 
   return (

@@ -6,6 +6,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -56,6 +57,15 @@ export const RegisterPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#1a1a1e]">
+      <div className="w-full max-w-md p-8">
+        <Skeleton height={40} width={200} className="mb-6" />
+        {[...Array(5)].map((_, i) => <Skeleton key={i} height={48} className="mb-4" />)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] flex items-center justify-center px-4 py-8">

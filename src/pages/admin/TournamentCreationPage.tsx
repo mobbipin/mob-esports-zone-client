@@ -10,12 +10,14 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const TournamentCreationPage: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string[] }>({});
+  const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -172,6 +174,14 @@ export const TournamentCreationPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (loading) return (
+    <div className="max-w-3xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <Skeleton height={200} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+    </div>
+  );
 
   return (
     <div className="space-y-8">

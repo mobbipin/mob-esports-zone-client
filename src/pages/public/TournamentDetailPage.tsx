@@ -6,6 +6,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const TournamentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -61,7 +62,14 @@ export const TournamentDetailPage: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center text-white">Loading tournament...</div>;
+  if (loading) return (
+    <div className="max-w-4xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <Skeleton height={200} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+    </div>
+  );
   if (error) return <div className="text-center text-red-500">{error}</div>;
   if (!tournament) return null;
 

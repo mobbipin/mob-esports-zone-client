@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { TrophyIcon, UsersIcon, CalendarIcon, ArrowRightIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const HomePage: React.FC = () => {
   const featuredTournaments = [
@@ -59,6 +60,17 @@ export const HomePage: React.FC = () => {
       image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
     }
   ];
+
+  const loading = false; // Placeholder for loading state
+
+  if (loading) return (
+    <div className="max-w-7xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <Skeleton height={200} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen">

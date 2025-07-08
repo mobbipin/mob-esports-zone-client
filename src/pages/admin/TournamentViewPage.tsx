@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const TournamentViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +28,14 @@ export const TournamentViewPage: React.FC = () => {
     fetchTournament();
   }, [id]);
 
-  if (loading) return <div className="text-center py-12 text-gray-400">Loading tournament...</div>;
+  if (loading) return (
+    <div className="max-w-3xl mx-auto py-8">
+      <Skeleton height={40} width={300} className="mb-6" />
+      <Skeleton height={200} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+      <Skeleton height={100} className="mb-4" />
+    </div>
+  );
   if (error || !tournament) return <div className="text-center py-12 text-red-500">{error || "Tournament not found"}</div>;
 
   return (
