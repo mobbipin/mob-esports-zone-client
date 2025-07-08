@@ -6,8 +6,11 @@ import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 import ReactQuill from "react-quill";
+// Add type declarations for CSS imports
+// @ts-ignore
 import "react-quill/dist/quill.snow.css";
 import DatePicker from "react-datepicker";
+// @ts-ignore
 import "react-datepicker/dist/react-datepicker.css";
 import { Skeleton } from "../../components/ui/skeleton";
 
@@ -40,7 +43,7 @@ export const TournamentEditPage: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev: any) => ({ ...prev, [name]: value }));
-    setFieldErrors(prev => ({ ...prev, [name]: [] }));
+    setFieldErrors((prev: any) => ({ ...prev, [name]: [] }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +116,7 @@ export const TournamentEditPage: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-white mb-2">Name</label>
               <Input name="name" value={form.name || ""} onChange={handleChange} required className="bg-[#19191d] border-[#292932] text-white" />
-              {fieldErrors.name && fieldErrors.name.map((err, idx) => (
+              {fieldErrors.name && fieldErrors.name.map((err: string, idx: number) => (
                 <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
               ))}
             </div>
@@ -125,14 +128,14 @@ export const TournamentEditPage: React.FC = () => {
                 onChange={val => setForm((prev: any) => ({ ...prev, description: val }))}
                 className="bg-[#19191d] text-white"
               />
-              {fieldErrors.description && fieldErrors.description.map((err, idx) => (
+              {fieldErrors.description && fieldErrors.description.map((err: string, idx: number) => (
                 <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
               ))}
             </div>
             <div>
               <label className="block text-sm font-medium text-white mb-2">Game</label>
               <Input name="game" value={form.game || ""} onChange={handleChange} required className="bg-[#19191d] border-[#292932] text-white" />
-              {fieldErrors.game && fieldErrors.game.map((err, idx) => (
+              {fieldErrors.game && fieldErrors.game.map((err: string, idx: number) => (
                 <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
               ))}
             </div>
@@ -149,7 +152,7 @@ export const TournamentEditPage: React.FC = () => {
                   className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
                   required
                 />
-                {fieldErrors.startDate && fieldErrors.startDate.map((err, idx) => (
+                {fieldErrors.startDate && fieldErrors.startDate.map((err: string, idx: number) => (
                   <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                 ))}
               </div>
@@ -165,7 +168,7 @@ export const TournamentEditPage: React.FC = () => {
                   className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
                   required
                 />
-                {fieldErrors.endDate && fieldErrors.endDate.map((err, idx) => (
+                {fieldErrors.endDate && fieldErrors.endDate.map((err: string, idx: number) => (
                   <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                 ))}
               </div>
@@ -174,14 +177,14 @@ export const TournamentEditPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Max Teams</label>
                 <Input type="number" name="maxTeams" value={form.maxTeams || 0} onChange={handleChange} required className="bg-[#19191d] border-[#292932] text-white" />
-                {fieldErrors.maxTeams && fieldErrors.maxTeams.map((err, idx) => (
+                {fieldErrors.maxTeams && fieldErrors.maxTeams.map((err: string, idx: number) => (
                   <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                 ))}
               </div>
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Prize Pool</label>
                 <Input type="number" name="prizePool" value={form.prizePool || 0} onChange={handleChange} className="bg-[#19191d] border-[#292932] text-white" />
-                {fieldErrors.prizePool && fieldErrors.prizePool.map((err, idx) => (
+                {fieldErrors.prizePool && fieldErrors.prizePool.map((err: string, idx: number) => (
                   <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                 ))}
               </div>

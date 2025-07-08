@@ -1,67 +1,36 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { TrophyIcon, UsersIcon, CalendarIcon, ArrowRightIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
+import { apiFetch } from "../../lib/api";
 
 export const HomePage: React.FC = () => {
-  const featuredTournaments = [
-    {
-      id: 1,
-      title: "PUBG Mobile Championship",
-      date: "Jan 15 - Jan 17, 2025",
-      participants: 128,
-      prize: "$10,000",
-      status: "Registration Open",
-      image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 2,
-      title: "Valorant Pro League",
-      date: "Jan 20 - Jan 22, 2025",
-      participants: 64,
-      prize: "$15,000",
-      status: "Coming Soon",
-      image: "https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    },
-    {
-      id: 3,
-      title: "Mobile Legends Tournament",
-      date: "Jan 25 - Jan 27, 2025",
-      participants: 96,
-      prize: "$8,000",
-      status: "Registration Open",
-      image: "https://images.pexels.com/photos/194511/pexels-photo-194511.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=1"
-    }
-  ];
+  const [featuredTournaments, setFeaturedTournaments] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [news, setNews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const leaderboard = [
-    { rank: 1, player: "ProGamer123", points: 2450, avatar: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { rank: 2, player: "EsportsKing", points: 2380, avatar: "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { rank: 3, player: "GameMaster", points: 2290, avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { rank: 4, player: "PixelWarrior", points: 2180, avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" },
-    { rank: 5, player: "CyberNinja", points: 2050, avatar: "https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=1" }
-  ];
-
-  const news = [
-    {
-      id: 1,
-      title: "New Tournament Format Announced",
-      excerpt: "We're introducing a revolutionary bracket system for better competitive balance...",
-      date: "Jan 10, 2025",
-      image: "https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    },
-    {
-      id: 2,
-      title: "Prize Pool Increased for Winter Championship",
-      excerpt: "Due to overwhelming response, we've increased the total prize pool to $50,000...",
-      date: "Jan 8, 2025",
-      image: "https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=1"
-    }
-  ];
-
-  const loading = false; // Placeholder for loading state
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      apiFetch<any>(`/tournaments?limit=3`),
+      apiFetch<any>(`/players?limit=5`),
+      apiFetch<any>(`/posts?limit=2`)
+    ])
+      .then(([tournamentsRes, playersRes, postsRes]) => {
+        setFeaturedTournaments(tournamentsRes.data || []);
+        setLeaderboard(playersRes.data || []);
+        setNews(postsRes.data || []);
+      })
+      .catch((err) => {
+        setError("Failed to load homepage data");
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) return (
     <div className="max-w-7xl mx-auto py-8">
@@ -71,6 +40,7 @@ export const HomePage: React.FC = () => {
       <Skeleton height={100} className="mb-4" />
     </div>
   );
+  if (error) return <div className="text-center py-12 text-red-500">{error}</div>;
 
   return (
     <div className="min-h-screen">
@@ -116,34 +86,40 @@ export const HomePage: React.FC = () => {
               <Card key={tournament.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
                 <div className="relative">
                   <img 
-                    src={tournament.image} 
-                    alt={tournament.title}
+                    src={tournament.imageUrl || tournament.bannerUrl || "https://via.placeholder.com/400x200?text=Tournament"} 
+                    alt={tournament.name}
                     className="w-full h-48 object-cover"
                   />
                   <div className="absolute top-4 right-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      tournament.status === "Registration Open" 
+                      tournament.status === "registration" 
                         ? "bg-green-600 text-white" 
-                        : "bg-yellow-600 text-white"
+                        : tournament.status === "upcoming"
+                          ? "bg-yellow-600 text-white"
+                          : tournament.status === "ongoing"
+                            ? "bg-blue-600 text-white"
+                            : tournament.status === "completed"
+                              ? "bg-gray-600 text-white"
+                              : "bg-[#292932] text-white"
                     }`}>
-                      {tournament.status}
+                      {tournament.status ? tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1) : "Unknown"}
                     </span>
                   </div>
                 </div>
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-2">{tournament.title}</h3>
+                  <h3 className="text-xl font-bold text-white mb-2">{tournament.name}</h3>
                   <div className="space-y-2 text-gray-400 text-sm mb-4">
                     <div className="flex items-center">
                       <CalendarIcon className="w-4 h-4 mr-2" />
-                      {tournament.date}
+                      {tournament.startDate ? `${new Date(tournament.startDate).toLocaleDateString()} - ${new Date(tournament.endDate).toLocaleDateString()}` : "TBA"}
                     </div>
                     <div className="flex items-center">
                       <UsersIcon className="w-4 h-4 mr-2" />
-                      {tournament.participants} participants
+                      {tournament.maxTeams || tournament.maxParticipants || 0} participants
                     </div>
                     <div className="flex items-center">
                       <TrophyIcon className="w-4 h-4 mr-2" />
-                      {tournament.prize} prize pool
+                      {tournament.prizePool ? `$${tournament.prizePool.toLocaleString()}` : "TBA"} prize pool
                     </div>
                   </div>
                   <Link to={`/tournaments/${tournament.id}`}>
@@ -168,25 +144,25 @@ export const HomePage: React.FC = () => {
               <Card className="bg-[#15151a] border-[#292932]">
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    {leaderboard.map((player) => (
-                      <div key={player.rank} className="flex items-center justify-between p-3 rounded-lg bg-[#19191d]">
+                    {leaderboard.map((player, idx) => (
+                      <div key={player.id || idx} className="flex items-center justify-between p-3 rounded-lg bg-[#19191d]">
                         <div className="flex items-center space-x-4">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                            player.rank === 1 ? "bg-yellow-500 text-black" :
-                            player.rank === 2 ? "bg-gray-400 text-black" :
-                            player.rank === 3 ? "bg-orange-600 text-white" :
+                            idx === 0 ? "bg-yellow-500 text-black" :
+                            idx === 1 ? "bg-gray-400 text-black" :
+                            idx === 2 ? "bg-orange-600 text-white" :
                             "bg-[#292932] text-white"
                           }`}>
-                            {player.rank}
+                            {idx + 1}
                           </div>
                           <img 
-                            src={player.avatar} 
-                            alt={player.player}
+                            src={player.playerProfile?.avatar || "https://via.placeholder.com/40x40?text=P"} 
+                            alt={player.displayName || player.username}
                             className="w-10 h-10 rounded-full"
                           />
-                          <span className="text-white font-medium">{player.player}</span>
+                          <span className="text-white font-medium">{player.displayName || player.username}</span>
                         </div>
-                        <span className="text-[#f34024] font-bold">{player.points} pts</span>
+                        <span className="text-[#f34024] font-bold">{player.playerProfile?.rank || "-"}</span>
                       </div>
                     ))}
                   </div>
@@ -207,14 +183,14 @@ export const HomePage: React.FC = () => {
                   <Card key={article.id} className="bg-[#15151a] border-[#292932] overflow-hidden hover:border-[#f34024] transition-colors">
                     <div className="flex">
                       <img 
-                        src={article.image} 
+                        src={article.thumbnail || "https://via.placeholder.com/96x96?text=News"} 
                         alt={article.title}
                         className="w-24 h-24 object-cover"
                       />
                       <CardContent className="p-4 flex-1">
                         <h3 className="text-lg font-bold text-white mb-2">{article.title}</h3>
-                        <p className="text-gray-400 text-sm mb-2">{article.excerpt}</p>
-                        <span className="text-[#f34024] text-xs">{article.date}</span>
+                        {/* No excerpt in API, so just show date */}
+                        <span className="text-[#f34024] text-xs">{article.createdAt ? new Date(article.createdAt).toLocaleDateString() : ""}</span>
                       </CardContent>
                     </div>
                   </Card>

@@ -7,8 +7,10 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
 import ReactQuill from "react-quill";
+// @ts-ignore
 import "react-quill/dist/quill.snow.css";
 import DatePicker from "react-datepicker";
+// @ts-ignore
 import "react-datepicker/dist/react-datepicker.css";
 import { Skeleton } from "../../components/ui/skeleton";
 
@@ -26,9 +28,9 @@ export const TournamentCreationPage: React.FC = () => {
     type: "solo",
     maxParticipants: "",
     prize: "",
-    startDate: null,
-    endDate: null,
-    registrationDeadline: null,
+    startDate: null as Date | null,
+    endDate: null as Date | null,
+    registrationDeadline: null as Date | null,
     rules: "",
     bannerImage: ""
   });
@@ -63,13 +65,9 @@ export const TournamentCreationPage: React.FC = () => {
   };
 
   // Helper to format datetime-local to full ISO string with seconds
-  const toFullISOString = (val: string) => {
+  const toFullISOString = (val: Date | null) => {
     if (!val) return "";
-    // If already has seconds, just add Z
-    if (val.length === 19) return val + "Z";
-    // If missing seconds, add :00
-    if (val.length === 16) return val + ":00Z";
-    return val;
+    return val.toISOString();
   };
 
   const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,8 +99,8 @@ export const TournamentCreationPage: React.FC = () => {
     if (!formData.type) errors.type = ["Type is required."];
     if (!formData.startDate) errors.startDate = ["Start date is required."];
     if (!formData.endDate) errors.endDate = ["End date is required."];
-    if (formData.startDate && formData.endDate && new Date(formData.startDate) >= new Date(formData.endDate)) errors.endDate = ["End date must be after start date."];
-    if (formData.bannerUrl && !/^https?:\/\/.+/.test(formData.bannerUrl)) errors.bannerUrl = ["Banner URL must be a valid URL."];
+    if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) errors.endDate = ["End date must be after start date."];
+    if (bannerUrl && !/^https?:\/\/.+/.test(bannerUrl)) errors.bannerUrl = ["Banner URL must be a valid URL."];
     if (formData.maxParticipants && (isNaN(Number(formData.maxParticipants)) || Number(formData.maxParticipants) < 2)) errors.maxParticipants = ["Max participants must be a number >= 2."];
     if (formData.prize && isNaN(Number(formData.prize))) errors.prize = ["Prize pool must be a number."];
     return errors;
@@ -244,7 +242,7 @@ export const TournamentCreationPage: React.FC = () => {
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                     required
                   />
-                  {fieldErrors.name && fieldErrors.name.map((err, idx) => (
+                  {fieldErrors.title && fieldErrors.title.map((err: string, idx: number) => (
                     <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                   ))}
                 </div>
@@ -257,7 +255,7 @@ export const TournamentCreationPage: React.FC = () => {
                     onChange={val => setFormData(prev => ({ ...prev, description: val }))}
                     className="bg-[#19191d] text-white"
                   />
-                  {fieldErrors.description && fieldErrors.description.map((err, idx) => (
+                  {fieldErrors.description && fieldErrors.description.map((err: string, idx: number) => (
                     <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                   ))}
                 </div>
@@ -279,7 +277,7 @@ export const TournamentCreationPage: React.FC = () => {
                         <option key={game} value={game}>{game}</option>
                       ))}
                     </select>
-                    {fieldErrors.game && fieldErrors.game.map((err, idx) => (
+                    {fieldErrors.game && fieldErrors.game.map((err: string, idx: number) => (
                       <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                     ))}
                   </div>
@@ -301,7 +299,7 @@ export const TournamentCreationPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                    {fieldErrors.type && fieldErrors.type.map((err, idx) => (
+                    {fieldErrors.type && fieldErrors.type.map((err: string, idx: number) => (
                       <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                     ))}
                   </div>
@@ -324,7 +322,7 @@ export const TournamentCreationPage: React.FC = () => {
                       className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                       required
                     />
-                    {fieldErrors.maxTeams && fieldErrors.maxTeams.map((err, idx) => (
+                    {fieldErrors.maxParticipants && fieldErrors.maxParticipants.map((err: string, idx: number) => (
                       <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                     ))}
                   </div>
@@ -343,7 +341,7 @@ export const TournamentCreationPage: React.FC = () => {
                       className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
                       required
                     />
-                    {fieldErrors.prizePool && fieldErrors.prizePool.map((err, idx) => (
+                    {fieldErrors.prize && fieldErrors.prize.map((err: string, idx: number) => (
                       <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                     ))}
                   </div>
@@ -373,7 +371,7 @@ export const TournamentCreationPage: React.FC = () => {
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
                     required
                   />
-                  {fieldErrors.startDate && fieldErrors.startDate.map((err, idx) => (
+                  {fieldErrors.startDate && fieldErrors.startDate.map((err: string, idx: number) => (
                     <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                   ))}
                 </div>
@@ -390,7 +388,7 @@ export const TournamentCreationPage: React.FC = () => {
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
                     required
                   />
-                  {fieldErrors.endDate && fieldErrors.endDate.map((err, idx) => (
+                  {fieldErrors.endDate && fieldErrors.endDate.map((err: string, idx: number) => (
                     <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                   ))}
                 </div>
@@ -407,7 +405,7 @@ export const TournamentCreationPage: React.FC = () => {
                     className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
                     required
                   />
-                  {fieldErrors.registrationDeadline && fieldErrors.registrationDeadline.map((err, idx) => (
+                  {fieldErrors.registrationDeadline && fieldErrors.registrationDeadline.map((err: string, idx: number) => (
                     <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                   ))}
                 </div>
@@ -433,7 +431,7 @@ export const TournamentCreationPage: React.FC = () => {
                   className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none"
                   required
                 />
-                {fieldErrors.rules && fieldErrors.rules.map((err, idx) => (
+                {fieldErrors.rules && fieldErrors.rules.map((err: string, idx: number) => (
                   <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
                 ))}
                 <p className="text-gray-400 text-xs mt-2">
