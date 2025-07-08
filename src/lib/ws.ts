@@ -1,6 +1,6 @@
 // WebSocket client utility for Bun real-time chat/notifications
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8788/ws";
+const WS_URL = (import.meta as any).env.VITE_WS_URL || "ws://localhost:8788/ws";
 
 export type WSMessage = {
   type: string;

@@ -24,6 +24,8 @@ import { ClientTournamentsPage } from "./pages/client/ClientTournamentsPage";
 import PlayerListPage from "./pages/client/PlayerListPage";
 import FriendsPage from "./pages/client/FriendsPage";
 import MessagesPage from "./pages/client/MessagesPage";
+import ChatPage from "./pages/client/ChatPage";
+import NotificationsPage from "./pages/client/NotificationsPage";
 
 // Admin Pages
 import { UsersManagementPage } from "./pages/admin/UsersManagementPage";
@@ -98,6 +100,24 @@ export const App = (): JSX.Element => {
           </ProtectedRoute>
         }>
           <Route index element={<MessagesPage />} />
+        </Route>
+      )}
+      {user && user.role !== 'admin' && (
+        <Route path="/chat" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<ChatPage />} />
+        </Route>
+      )}
+      {user && user.role !== 'admin' && (
+        <Route path="/notifications" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<NotificationsPage />} />
         </Route>
       )}
 

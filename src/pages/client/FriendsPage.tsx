@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
+import { useWebSocket } from "../../hooks/useWebSocket";
 
 const FriendsPage: React.FC = () => {
   const { user } = useAuth();
@@ -16,6 +17,9 @@ const FriendsPage: React.FC = () => {
   const [privacy, setPrivacy] = useState(user?.isPublic ?? 1);
   const [loading, setLoading] = useState(false);
   const [requestSent, setRequestSent] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const { lastMessage } = useWebSocket(localStorage.getItem("token"));
 
   useEffect(() => {
     fetchFriends();
@@ -24,13 +28,27 @@ const FriendsPage: React.FC = () => {
     // eslint-disable-next-line
   }, [user]);
 
+  // WebSocket: Listen for real-time friend updates
+  useEffect(() => {
+    if (!lastMessage) return;
+    if (lastMessage.type === "friend:update") {
+      fetchFriends();
+      fetchPending();
+    } else if (lastMessage.type === "friend:request") {
+      addToast("New friend request received!", "info");
+      fetchPending();
+    }
+  }, [lastMessage]);
+
   const fetchFriends = async () => {
     setLoading(true);
     try {
       const res = await apiFetch<any>("/friends");
       setFriends(res.data || []);
-    } catch {
+      setError(null);
+    } catch (err: any) {
       setFriends([]);
+      setError(err?.message || "Failed to load friends");
     } finally {
       setLoading(false);
     }
@@ -99,6 +117,7 @@ const FriendsPage: React.FC = () => {
     <div className="min-h-screen bg-[#1a1a1e] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-white mb-8">Friends</h1>
+        {error && <div className="text-red-500 mb-4">{error}</div>}
         <Card className="bg-[#15151a] border-[#292932] mb-8">
           <CardContent className="p-6">
             <div className="flex items-center gap-4 mb-4">

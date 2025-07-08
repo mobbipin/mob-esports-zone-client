@@ -6,6 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 import { useLocation } from "react-router-dom";
+import { useWebSocket } from "../../hooks/useWebSocket";
 
 const MessagesPage: React.FC = () => {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ const MessagesPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const [friends, setFriends] = useState<any[]>([]);
+  const { lastMessage } = useWebSocket(localStorage.getItem("token"));
 
   useEffect(() => {
     fetchConversations();
@@ -49,13 +51,30 @@ const MessagesPage: React.FC = () => {
       }
       if (conv) setSelected(conv);
     }
-    // Poll for new messages every 5s
-    const interval = setInterval(() => {
-      if (selected) fetchMessages(selected);
-      fetchConversations();
-    }, 5000);
-    return () => clearInterval(interval);
   }, [location.search, conversations, selected]);
+
+  // WebSocket: Listen for new chat messages in real time
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === "chat:message") {
+      // Only add to messages if it matches the selected conversation
+      if (
+        selected &&
+        ((lastMessage.from === selected.recipientId && lastMessage.to === user?.id) ||
+         (lastMessage.from === user?.id && lastMessage.to === selected.recipientId))
+      ) {
+        setMessages((msgs) => [...msgs, { senderId: lastMessage.from, content: lastMessage.text, createdAt: new Date().toISOString() }]);
+        // Toast for incoming messages from others
+        if (lastMessage.from !== user?.id) {
+          addToast(`New message from ${lastMessage.from}`, "info");
+        }
+      }
+    }
+  }, [lastMessage, selected, user, addToast]);
+
+  // Auto-scroll to bottom on new message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const fetchConversations = async () => {
     setLoading(true);
@@ -121,8 +140,8 @@ const MessagesPage: React.FC = () => {
         });
       }
       setInput("");
-      fetchMessages(selected);
-      fetchConversations();
+      fetchMessages(selected); // Refresh messages after sending
+      fetchConversations();   // Refresh conversations after sending
     } catch (err: any) {
       addToast(err.message || "Failed to send message", "error");
     }
@@ -180,14 +199,12 @@ const MessagesPage: React.FC = () => {
         <div className="flex-1">
           <Card className="bg-[#15151a] border-[#292932] h-full flex flex-col">
             <CardContent className="p-4 flex-1 flex flex-col h-[600px]">
-              {selected && (
-                <div className="flex items-center gap-3 mb-4">
-                  <img src={selected.avatar || "https://via.placeholder.com/40x40?text=U"} alt={selected.displayName || selected.username} className="w-10 h-10 rounded-full" />
-                  <span className="text-white font-bold text-lg">{selected.displayName || selected.username}</span>
-                </div>
-              )}
               {selected ? (
                 <>
+                  <div className="flex items-center gap-3 mb-4">
+                    <img src={selected.avatar || "https://via.placeholder.com/40x40?text=U"} alt={selected.displayName || selected.username} className="w-10 h-10 rounded-full" />
+                    <span className="text-white font-bold text-lg">{selected.displayName || selected.username}</span>
+                  </div>
                   <div className="flex-1 overflow-y-auto mb-4">
                     {messages.length === 0 ? (
                       <div className="text-gray-400">No messages yet.</div>
@@ -206,20 +223,16 @@ const MessagesPage: React.FC = () => {
                   <div className="flex gap-2 mt-auto">
                     <Input
                       value={input}
-                      onChange={e => setInput(e.target.value)}
+                      onChange={(e) => setInput(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter") sendMessage(); }}
                       placeholder="Type a message..."
-                      className="bg-[#19191d] border-[#292932] text-white"
-                      disabled={selected.teamId && user?.role !== "admin"}
+                      className="flex-1 bg-[#19191d] border-[#292932] text-white"
                     />
-                    <Button onClick={sendMessage} className="bg-[#f34024] text-white" disabled={selected.teamId && user?.role !== "admin"}>Send</Button>
+                    <Button onClick={sendMessage} className="bg-[#f34024] text-white" disabled={!input.trim()}>Send</Button>
                   </div>
-                  {selected.teamId && user?.role !== "admin" && (
-                    <div className="text-xs text-gray-400 mt-2">Only admins can send messages in this group.</div>
-                  )}
                 </>
               ) : (
-                <div className="text-gray-400">Select a conversation to start chatting.</div>
+                <div className="flex-1 flex items-center justify-center text-gray-400">Select a conversation to start chatting.</div>
               )}
             </CardContent>
           </Card>
