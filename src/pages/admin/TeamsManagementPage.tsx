@@ -6,17 +6,19 @@ import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
-// Add a simple DeleteDialog component at the top of the file
-const DeleteDialog = ({ open, onConfirm, onCancel, message }: { open: boolean, onConfirm: () => void, onCancel: () => void, message: string }) => {
+// Replace DeleteDialog with a modern modal
+const DeleteDialog = ({ open, onConfirm, onCancel, message, loading }: { open: boolean, onConfirm: () => void, onCancel: () => void, message: string, loading?: boolean }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-[#19191d] p-6 rounded-lg shadow-lg w-full max-w-sm">
-        <div className="text-white mb-4">{message}</div>
-        <div className="flex justify-end space-x-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+      <div className="bg-[#19191d] p-8 rounded-xl shadow-2xl w-full max-w-md border border-[#292932]">
+        <div className="text-lg text-white font-semibold mb-4">Confirm Deletion</div>
+        <div className="text-gray-300 mb-6">{message}</div>
+        <div className="flex justify-end gap-3">
           <Button onClick={onCancel} variant="outline" className="border-[#292932]">Cancel</Button>
-          <Button onClick={onConfirm} className="bg-red-600 text-white">Delete</Button>
+          <Button onClick={onConfirm} className="bg-red-600 text-white" disabled={loading}>{loading ? "Deleting..." : "Delete"}</Button>
         </div>
       </div>
     </div>
@@ -25,6 +27,7 @@ const DeleteDialog = ({ open, onConfirm, onCancel, message }: { open: boolean, o
 
 export const TeamsManagementPage: React.FC = () => {
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedTeams, setSelectedTeams] = useState<number[]>([]);
@@ -35,6 +38,8 @@ export const TeamsManagementPage: React.FC = () => {
   const [total, setTotal] = useState(0);
   const limit = 9;
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, teamId?: string, teamName?: string }>({ open: false });
+  const [bulkDelete, setBulkDelete] = useState<{ open: boolean, count: number }>({ open: false, count: 0 });
+  const [deleting, setDeleting] = useState(false);
 
   const fetchTeams = async () => {
     setLoading(true);
@@ -117,6 +122,26 @@ export const TeamsManagementPage: React.FC = () => {
         return "bg-red-600";
       default:
         return "bg-gray-600";
+    }
+  };
+
+  // Bulk delete handler
+  const handleBulkDelete = () => {
+    if (selectedTeams.length === 0) return;
+    setBulkDelete({ open: true, count: selectedTeams.length });
+  };
+  const confirmBulkDelete = async () => {
+    setDeleting(true);
+    try {
+      await Promise.all(selectedTeams.map(id => apiFetch(`/teams/${id}`, { method: "DELETE" })));
+      addToast(`${selectedTeams.length} team(s) deleted`, "success");
+      setSelectedTeams([]);
+      fetchTeams();
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || "Failed to delete teams", "error");
+    } finally {
+      setBulkDelete({ open: false, count: 0 });
+      setDeleting(false);
     }
   };
 
@@ -227,7 +252,7 @@ export const TeamsManagementPage: React.FC = () => {
                   <MessageCircleIcon className="w-4 h-4 mr-2" />
                   Message Captains
                 </Button>
-                <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white">
+                <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white" onClick={handleBulkDelete}>
                   <TrashIcon className="w-4 h-4 mr-2" />
                   Delete Selected
                 </Button>
@@ -333,9 +358,9 @@ export const TeamsManagementPage: React.FC = () => {
                     size="sm" 
                     variant="outline"
                     className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
+                    onClick={() => navigate(`/admin/teams/${team.id}/view`)}
                   >
-                    <EditIcon className="w-3 h-3 mr-1" />
-                    Edit
+                    View
                   </Button>
                   <Button 
                     size="sm"
@@ -368,9 +393,23 @@ export const TeamsManagementPage: React.FC = () => {
       {/* Delete Dialog */}
       <DeleteDialog
         open={deleteDialog.open}
-        onConfirm={confirmDeleteTeam}
+        onConfirm={async () => {
+          setDeleting(true);
+          await confirmDeleteTeam();
+          setDeleting(false);
+        }}
         onCancel={() => setDeleteDialog({ open: false })}
         message={`Are you sure you want to delete team "${deleteDialog.teamName}"? This action cannot be undone.`}
+        loading={deleting}
+      />
+
+      {/* Bulk Delete Dialog */}
+      <DeleteDialog
+        open={bulkDelete.open}
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setBulkDelete({ open: false, count: 0 })}
+        message={`Are you sure you want to delete ${bulkDelete.count} team(s)? This action cannot be undone.`}
+        loading={deleting}
       />
 
       {/* Pagination */}

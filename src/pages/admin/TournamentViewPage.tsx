@@ -4,10 +4,12 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import { useToast } from "../../contexts/ToastContext";
 
 export const TournamentViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tournament, setTournament] = useState<any>(null);
@@ -28,6 +30,18 @@ export const TournamentViewPage: React.FC = () => {
     fetchTournament();
   }, [id]);
 
+  const handleDelete = async () => {
+    if (!id) return;
+    if (!window.confirm("Are you sure you want to delete this tournament? This action cannot be undone.")) return;
+    try {
+      await apiFetch(`/tournaments/${id}`, { method: "DELETE" });
+      addToast("Tournament deleted", "success");
+      navigate("/admin/tournaments");
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || "Failed to delete tournament", "error");
+    }
+  };
+
   if (loading) return (
     <div className="max-w-3xl mx-auto py-8">
       <Skeleton height={40} width={300} className="mb-6" />
@@ -47,7 +61,11 @@ export const TournamentViewPage: React.FC = () => {
           )}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-white">{tournament.name}</h2>
-            <Button onClick={() => navigate(-1)} variant="outline" className="border-[#292932] text-white">Back</Button>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate(`/admin/tournaments/${id}/bracket`)} variant="outline" className="border-[#292932] text-white">Bracket</Button>
+              <Button onClick={handleDelete} variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white">Delete</Button>
+              <Button onClick={() => navigate(-1)} variant="outline" className="border-[#292932] text-white">Back</Button>
+            </div>
           </div>
           <div className="mb-4 text-gray-400">{tournament.description}</div>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -68,7 +86,12 @@ export const TournamentViewPage: React.FC = () => {
               <ul className="list-disc pl-6 text-gray-300">
                 {tournament.teams.length === 0 && <li>No teams registered</li>}
                 {tournament.teams.map((team: any) => (
-                  <li key={team.teamId || team.id}>{team.teamId || team.id}</li>
+                  <li key={team.teamId || team.id} className="flex items-center justify-between">
+                    <span>{team.teamId || team.id}</span>
+                    <Button size="sm" variant="outline" className="ml-2 border-[#292932] hover:text-white hover:bg-[#292932]" onClick={() => navigate(`/admin/teams/${team.teamId || team.id}/view`)}>
+                      View
+                    </Button>
+                  </li>
                 ))}
               </ul>
             </div>

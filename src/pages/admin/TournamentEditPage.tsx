@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeftIcon, SaveIcon, CalendarIcon, UsersIcon, TrophyIcon, ImageIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../contexts/ToastContext";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, apiUpload } from "../../lib/api";
 import ReactQuill from "react-quill";
-// Add type declarations for CSS imports
 // @ts-ignore
 import "react-quill/dist/quill.snow.css";
 import DatePicker from "react-datepicker";
@@ -21,8 +21,10 @@ export const TournamentEditPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<any>({});
   const [fieldErrors, setFieldErrors] = useState<any>({});
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [formData, setFormData] = useState<any>({});
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -30,7 +32,18 @@ export const TournamentEditPage: React.FC = () => {
       setError(null);
       try {
         const res = await apiFetch<any>(`/tournaments/${id}`);
-        setForm(res.data || {});
+        setFormData({
+          title: res.data?.name || "",
+          description: res.data?.description || "",
+          game: res.data?.game || "",
+          maxParticipants: res.data?.maxTeams?.toString() || "",
+          prize: res.data?.prizePool?.toString() || "",
+          startDate: res.data?.startDate ? new Date(res.data.startDate) : null,
+          endDate: res.data?.endDate ? new Date(res.data.endDate) : null,
+          rules: res.data?.rules || "",
+          bannerUrl: res.data?.imageUrl || res.data?.bannerUrl || "",
+        });
+        setBannerUrl(res.data?.imageUrl || res.data?.bannerUrl || "");
       } catch (err: any) {
         setError("Failed to load tournament");
       } finally {
@@ -41,9 +54,43 @@ export const TournamentEditPage: React.FC = () => {
   }, [id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm((prev: any) => ({ ...prev, [name]: value }));
-    setFieldErrors((prev: any) => ({ ...prev, [name]: [] }));
+    setFormData((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
+    setFieldErrors((prev: any) => ({ ...prev, [e.target.name]: [] }));
+  };
+
+  const toFullISOString = (val: Date | null) => {
+    if (!val) return "";
+    return val.toISOString();
+  };
+
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBannerUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("banner", file);
+      const res = await apiUpload("/upload/tournament-banner", formData);
+      setBannerUrl(res.data?.url || "");
+      addToast("Banner uploaded!", "success");
+    } catch (err: any) {
+      addToast(err.message || err?.toString() || "Failed to upload banner", "error");
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
+  const validate = () => {
+    const errors: any = {};
+    if (!formData.title || formData.title.length < 2) errors.title = ["Title must be at least 2 characters."];
+    if (!formData.game) errors.game = ["Game is required."];
+    if (!formData.startDate) errors.startDate = ["Start date is required."];
+    if (!formData.endDate) errors.endDate = ["End date is required."];
+    if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) errors.endDate = ["End date must be after start date."];
+    if (bannerUrl && !/^https?:\/\/.+/.test(bannerUrl)) errors.bannerUrl = ["Banner URL must be a valid URL."];
+    if (formData.maxParticipants && (isNaN(Number(formData.maxParticipants)) || Number(formData.maxParticipants) < 2)) errors.maxParticipants = ["Max participants must be a number >= 2."];
+    if (formData.prize && isNaN(Number(formData.prize))) errors.prize = ["Prize pool must be a number."];
+    return errors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,25 +99,21 @@ export const TournamentEditPage: React.FC = () => {
     setError(null);
     const errors = validate();
     setFieldErrors(errors);
-
     if (Object.keys(errors).length > 0) {
       setSaving(false);
       return;
     }
-
     try {
-      // Only send fields expected by backend
       const updatePayload = {
-        name: form.name,
-        description: form.description,
-        game: form.game,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        maxTeams: form.maxTeams,
-        prizePool: form.prizePool === "" || form.prizePool === null ? undefined : Number(form.prizePool),
-        entryFee: form.entryFee === "" || form.entryFee === null ? undefined : Number(form.entryFee),
-        rules: form.rules,
-        status: form.status
+        name: formData.title,
+        description: formData.description,
+        game: formData.game,
+        startDate: toFullISOString(formData.startDate),
+        endDate: toFullISOString(formData.endDate),
+        maxTeams: formData.maxParticipants ? Number(formData.maxParticipants) : undefined,
+        prizePool: formData.prize === "" || formData.prize === null ? undefined : Number(formData.prize),
+        rules: Array.isArray(formData.rules) ? formData.rules.join("\n") : formData.rules,
+        imageUrl: bannerUrl || undefined,
       };
       await apiFetch(`/tournaments/${id}`, {
         method: "PUT",
@@ -85,21 +128,8 @@ export const TournamentEditPage: React.FC = () => {
     }
   };
 
-  const validate = () => {
-    const errors: any = {};
-    if (!form.name || form.name.length < 2) errors.name = ["Name must be at least 2 characters."];
-    if (!form.game) errors.game = ["Game is required."];
-    if (!form.startDate) errors.startDate = ["Start date is required."];
-    if (!form.endDate) errors.endDate = ["End date is required."];
-    if (form.startDate && form.endDate && new Date(form.startDate) >= new Date(form.endDate)) errors.endDate = ["End date must be after start date."];
-    if (form.bannerUrl && !/^https?:\/\/.+/.test(form.bannerUrl)) errors.bannerUrl = ["Banner URL must be a valid URL."];
-    if (form.maxTeams && (isNaN(Number(form.maxTeams)) || Number(form.maxTeams) < 2)) errors.maxTeams = ["Max teams must be a number >= 2."];
-    if (form.prizePool && isNaN(Number(form.prizePool))) errors.prizePool = ["Prize pool must be a number."];
-    return errors;
-  };
-
   if (loading) return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="max-w-3xl mx-auto py-8">
       <Skeleton height={40} width={300} className="mb-6" />
       <Skeleton height={200} className="mb-4" />
       <Skeleton height={100} className="mb-4" />
@@ -108,113 +138,233 @@ export const TournamentEditPage: React.FC = () => {
   if (error) return <div className="text-center py-12 text-red-500">{error}</div>;
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      <Card className="bg-[#15151a] border-[#292932]">
-        <CardContent className="p-6">
-          <h2 className="text-2xl font-bold text-white mb-6">Edit Tournament</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Name</label>
-              <Input name="name" value={form.name || ""} onChange={handleChange} required className="bg-[#19191d] border-[#292932] text-white" />
-              {fieldErrors.name && fieldErrors.name.map((err: string, idx: number) => (
-                <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
-              ))}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Description</label>
-              <ReactQuill
-                theme="snow"
-                value={form.description}
-                onChange={val => setForm((prev: any) => ({ ...prev, description: val }))}
-                className="bg-[#19191d] text-white"
-              />
-              {fieldErrors.description && fieldErrors.description.map((err: string, idx: number) => (
-                <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
-              ))}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Game</label>
-              <Input name="game" value={form.game || ""} onChange={handleChange} required className="bg-[#19191d] border-[#292932] text-white" />
-              {fieldErrors.game && fieldErrors.game.map((err: string, idx: number) => (
-                <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Start Date & Time *</label>
-                <DatePicker
-                  selected={form.startDate ? new Date(form.startDate) : null}
-                  onChange={date => setForm((prev: any) => ({ ...prev, startDate: date ? date.toISOString() : "" }))}
-                  showTimeSelect
-                  timeFormat="HH:mm"
-                  timeIntervals={15}
-                  dateFormat="yyyy-MM-dd HH:mm"
-                  className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
-                  required
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button 
+            onClick={() => navigate("/admin/tournaments")}
+            variant="outline"
+            className="border-[#292932] hover:text-white hover:bg-[#292932]"
+          >
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
+            Back to Tournaments
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Edit Tournament</h1>
+            <p className="text-gray-400">Update tournament details</p>
+          </div>
+        </div>
+        <div className="flex space-x-3">
+          <Button 
+            form="tournament-edit-form"
+            type="submit"
+            disabled={saving}
+            className="bg-[#f34024] hover:bg-[#f34024]/90 text-white"
+          >
+            <SaveIcon className="w-4 h-4 mr-2" />
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </div>
+      <form id="tournament-edit-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Form */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Basic Information */}
+          <Card className="bg-[#15151a] border-[#292932]">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-bold text-white mb-6">Basic Information</h2>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Tournament Title *</label>
+                  <Input
+                    name="title"
+                    value={formData.title || ""}
+                    onChange={handleChange}
+                    placeholder="Enter tournament title"
+                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                    required
+                  />
+                  {fieldErrors.title && fieldErrors.title.map((err: string, idx: number) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Description *</label>
+                  <ReactQuill
+                    theme="snow"
+                    value={formData.description}
+                    onChange={val => setFormData((prev: any) => ({ ...prev, description: val }))}
+                    className="bg-[#19191d] text-white"
+                  />
+                  {fieldErrors.description && fieldErrors.description.map((err: string, idx: number) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">Game *</label>
+                    <Input
+                      name="game"
+                      value={formData.game || ""}
+                      onChange={handleChange}
+                      placeholder="Enter game name"
+                      className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                      required
+                    />
+                    {fieldErrors.game && fieldErrors.game.map((err: string, idx: number) => (
+                      <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                    ))}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">Max Participants *</label>
+                    <Input
+                      name="maxParticipants"
+                      type="number"
+                      value={formData.maxParticipants || ""}
+                      onChange={handleChange}
+                      placeholder="e.g., 64"
+                      min="2"
+                      max="1000"
+                      className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                      required
+                    />
+                    {fieldErrors.maxParticipants && fieldErrors.maxParticipants.map((err: string, idx: number) => (
+                      <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">Prize Pool *</label>
+                    <Input
+                      name="prize"
+                      type="number"
+                      value={formData.prize || ""}
+                      onChange={handleChange}
+                      placeholder="e.g., $10,000"
+                      className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                      required
+                    />
+                    {fieldErrors.prize && fieldErrors.prize.map((err: string, idx: number) => (
+                      <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                    ))}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">Rules</label>
+                    <textarea
+                      name="rules"
+                      value={formData.rules || ""}
+                      onChange={handleChange}
+                      rows={8}
+                      placeholder="Enter tournament rules, format, and regulations..."
+                      className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Schedule */}
+          <Card className="bg-[#15151a] border-[#292932]">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-bold text-white mb-6">
+                <CalendarIcon className="w-5 h-5 inline mr-2" />
+                Schedule
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Start Date & Time *</label>
+                  <DatePicker
+                    selected={formData.startDate}
+                    onChange={date => setFormData((prev: any) => ({ ...prev, startDate: date }))}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    dateFormat="yyyy-MM-dd HH:mm"
+                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
+                    required
+                  />
+                  {fieldErrors.startDate && fieldErrors.startDate.map((err: string, idx: number) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">End Date & Time *</label>
+                  <DatePicker
+                    selected={formData.endDate}
+                    onChange={date => setFormData((prev: any) => ({ ...prev, endDate: date }))}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    dateFormat="yyyy-MM-dd HH:mm"
+                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
+                    required
+                  />
+                  {fieldErrors.endDate && fieldErrors.endDate.map((err: string, idx: number) => (
+                    <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {/* Sidebar */}
+        <div className="space-y-8">
+          {/* Banner Image */}
+          <Card className="bg-[#15151a] border-[#292932]">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-bold text-white mb-4">
+                <ImageIcon className="w-5 h-5 inline mr-2" />
+                Tournament Banner
+              </h3>
+              <div className="border-2 border-dashed border-[#292932] rounded-lg p-8 text-center">
+                <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-400 mb-4">Upload tournament banner</p>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                  onChange={handleBannerChange}
+                  disabled={bannerUploading}
                 />
-                {fieldErrors.startDate && fieldErrors.startDate.map((err: string, idx: number) => (
-                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
-                ))}
+                {bannerUploading && <p className="text-yellow-500 text-xs mt-2">Uploading...</p>}
+                {bannerUrl && <img src={bannerUrl} alt="Banner Preview" className="mt-2 rounded-lg max-h-32 mx-auto" />}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">End Date & Time *</label>
-                <DatePicker
-                  selected={form.endDate ? new Date(form.endDate) : null}
-                  onChange={date => setForm((prev: any) => ({ ...prev, endDate: date ? date.toISOString() : "" }))}
-                  showTimeSelect
-                  timeFormat="HH:mm"
-                  timeIntervals={15}
-                  dateFormat="yyyy-MM-dd HH:mm"
-                  className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] w-full px-3 py-2 rounded-md"
-                  required
-                />
-                {fieldErrors.endDate && fieldErrors.endDate.map((err: string, idx: number) => (
-                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
-                ))}
+            </CardContent>
+          </Card>
+          {/* Preview */}
+          <Card className="bg-[#15151a] border-[#292932]">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Preview</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Title:</span>
+                  <span className="text-white">{formData.title || "Not set"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Game:</span>
+                  <span className="text-white">{formData.game || "Not set"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Max Participants:</span>
+                  <span className="text-white">{formData.maxParticipants || "Not set"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Prize Pool:</span>
+                  <span className="text-[#f34024] font-bold">{formData.prize || "Not set"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Start Date:</span>
+                  <span className="text-white">
+                    {formData.startDate ? new Date(formData.startDate).toLocaleDateString() : "Not set"}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Max Teams</label>
-                <Input type="number" name="maxTeams" value={form.maxTeams || 0} onChange={handleChange} required className="bg-[#19191d] border-[#292932] text-white" />
-                {fieldErrors.maxTeams && fieldErrors.maxTeams.map((err: string, idx: number) => (
-                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
-                ))}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Prize Pool</label>
-                <Input type="number" name="prizePool" value={form.prizePool || 0} onChange={handleChange} className="bg-[#19191d] border-[#292932] text-white" />
-                {fieldErrors.prizePool && fieldErrors.prizePool.map((err: string, idx: number) => (
-                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Rules</label>
-              <textarea name="rules" value={form.rules || ""} onChange={handleChange} className="w-full bg-[#19191d] border-[#292932] text-white rounded-md p-2 min-h-[60px]" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Status</label>
-              <select name="status" value={form.status || "draft"} onChange={handleChange} className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md">
-                <option value="draft">Draft</option>
-                <option value="registration">Registration</option>
-                <option value="ongoing">Ongoing</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            <div className="flex space-x-3 pt-4">
-              <Button type="submit" className="flex-1 bg-[#f34024] hover:bg-[#f34024]/90 text-white" disabled={saving}>
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-              <Button type="button" onClick={() => navigate("/admin/tournaments")} variant="outline" className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]">
-                Cancel
-              </Button>
-            </div>
-            {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
-          </form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </form>
     </div>
   );
 }; 

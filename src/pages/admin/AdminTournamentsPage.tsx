@@ -8,6 +8,23 @@ import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
 
+// Add DeleteDialog component (copied from TeamsManagementPage)
+const DeleteDialog = ({ open, onConfirm, onCancel, message, loading }: { open: boolean, onConfirm: () => void, onCancel: () => void, message: string, loading?: boolean }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+      <div className="bg-[#19191d] p-8 rounded-xl shadow-2xl w-full max-w-md border border-[#292932]">
+        <div className="text-lg text-white font-semibold mb-4">Confirm Deletion</div>
+        <div className="text-gray-300 mb-6">{message}</div>
+        <div className="flex justify-end gap-3">
+          <Button onClick={onCancel} variant="outline" className="border-[#292932]">Cancel</Button>
+          <Button onClick={onConfirm} className="bg-red-600 text-white" disabled={loading}>{loading ? "Deleting..." : "Delete"}</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const AdminTournamentsPage: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
@@ -20,6 +37,8 @@ export const AdminTournamentsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 9;
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, tournamentId?: string, tournamentName?: string }>({ open: false });
+  const [deleting, setDeleting] = useState(false);
 
   const fetchTournaments = async () => {
     setLoading(true);
@@ -285,17 +304,14 @@ export const AdminTournamentsPage: React.FC = () => {
                       Cancel
                     </Button>
                   )}
-                  {(tournament.status === "draft" || tournament.status === "cancelled" || tournament.status === "Draft" || tournament.status === "Cancelled") && (
-                    <Button 
-                      size="sm"
-                      onClick={() => handleDeleteTournament(tournament.id, tournament.name || tournament.title)}
-                      variant="outline"
-                      className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                    >
-                      <TrashIcon className="w-3 h-3 mr-1" />
-                      Delete
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                    onClick={() => setDeleteDialog({ open: true, tournamentId: tournament.id, tournamentName: tournament.name })}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -316,6 +332,26 @@ export const AdminTournamentsPage: React.FC = () => {
           </Button>
         </div>
       </div>
+      <DeleteDialog
+        open={deleteDialog.open}
+        onConfirm={async () => {
+          setDeleting(true);
+          try {
+            await apiFetch(`/tournaments/${deleteDialog.tournamentId}`, { method: "DELETE" });
+            addToast(`Tournament "${deleteDialog.tournamentName}" deleted`, "success");
+            // Refresh the tournament list here
+            fetchTournaments();
+          } catch (err: any) {
+            addToast(err.message || err?.toString() || "Failed to delete tournament", "error");
+          } finally {
+            setDeleteDialog({ open: false });
+            setDeleting(false);
+          }
+        }}
+        onCancel={() => setDeleteDialog({ open: false })}
+        message={`Are you sure you want to delete tournament "${deleteDialog.tournamentName}"? This action cannot be undone.`}
+        loading={deleting}
+      />
     </div>
   );
 };

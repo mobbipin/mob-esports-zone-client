@@ -34,6 +34,8 @@ import { TournamentEditPage } from "./pages/admin/TournamentEditPage";
 import { PostEditPage } from "./pages/admin/PostEditPage";
 import { TournamentViewPage } from "./pages/admin/TournamentViewPage";
 import { PostViewPage } from "./pages/admin/PostViewPage";
+import { AdminTeamViewPage } from "./pages/admin/AdminTeamViewPage";
+import { AdminDashboard } from "./pages/admin/AdminDashboard";
 
 export const App = (): JSX.Element => {
   const { user, loading } = useAuth();
@@ -86,7 +88,7 @@ export const App = (): JSX.Element => {
             <AdminLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<Navigate to="users" replace />} />
+          <Route index element={<AdminDashboard />} />
           <Route path="users" element={<UsersManagementPage />} />
           <Route path="teams" element={<TeamsManagementPage />} />
           <Route path="tournaments" element={<AdminTournamentsPage />} />
@@ -97,6 +99,7 @@ export const App = (): JSX.Element => {
           <Route path="posts" element={<PostsManagementPage />} />
           <Route path="posts/:id/edit" element={<PostEditPage />} />
           <Route path="posts/:id/view" element={<PostViewPage />} />
+          <Route path="teams/:id/view" element={<AdminTeamViewPage />} />
         </Route>
       )}
 
