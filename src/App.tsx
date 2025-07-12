@@ -9,6 +9,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { HomePage } from "./pages/public/HomePage";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { RegisterPage } from "./pages/auth/RegisterPage";
+import { VerifyEmailPage } from "./pages/auth/VerifyEmailPage";
 import { TournamentsPage } from "./pages/public/TournamentsPage";
 import { TournamentDetailPage } from "./pages/public/TournamentDetailPage";
 import { NewsPage } from "./pages/public/NewsPage";
@@ -23,8 +24,6 @@ import { ManageTeamPage } from "./pages/client/ManageTeamPage";
 import { ClientTournamentsPage } from "./pages/client/ClientTournamentsPage";
 import PlayerListPage from "./pages/client/PlayerListPage";
 import FriendsPage from "./pages/client/FriendsPage";
-import MessagesPage from "./pages/client/MessagesPage";
-import ChatPage from "./pages/client/ChatPage";
 import NotificationsPage from "./pages/client/NotificationsPage";
 
 // Admin Pages
@@ -40,6 +39,8 @@ import { TournamentViewPage } from "./pages/admin/TournamentViewPage";
 import { PostViewPage } from "./pages/admin/PostViewPage";
 import { AdminTeamViewPage } from "./pages/admin/AdminTeamViewPage";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { TestEmailPage } from "./pages/TestEmailPage";
+import { OrganizerDashboard } from "./pages/organizer/OrganizerDashboard";
 
 export const App = (): JSX.Element => {
   const { user, loading } = useAuth();
@@ -65,8 +66,12 @@ export const App = (): JSX.Element => {
       </Route>
 
       {/* Auth Routes */}
-      <Route path="/login" element={user ? (user.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <LoginPage />} />
-      <Route path="/register" element={user ? (user.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <RegisterPage />} />
+      <Route path="/login" element={user ? (user.role === 'admin' ? <Navigate to="/admin" /> : user.role === 'tournament_organizer' ? <Navigate to="/organizer" /> : <Navigate to="/dashboard" />) : <LoginPage />} />
+      <Route path="/register" element={user ? (user.role === 'admin' ? <Navigate to="/admin" /> : user.role === 'tournament_organizer' ? <Navigate to="/organizer" /> : <Navigate to="/dashboard" />) : <RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      
+      {/* Test Routes (Development Only) */}
+      <Route path="/test-email" element={<TestEmailPage />} />
       
 
       {/* Client Routes */}
@@ -93,24 +98,7 @@ export const App = (): JSX.Element => {
           <Route index element={<FriendsPage />} />
         </Route>
       )}
-      {user && user.role !== 'admin' && (
-        <Route path="/messages" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<MessagesPage />} />
-        </Route>
-      )}
-      {user && user.role !== 'admin' && (
-        <Route path="/chat" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<ChatPage />} />
-        </Route>
-      )}
+
       {user && user.role !== 'admin' && (
         <Route path="/notifications" element={
           <ProtectedRoute>
@@ -118,6 +106,17 @@ export const App = (): JSX.Element => {
           </ProtectedRoute>
         }>
           <Route index element={<NotificationsPage />} />
+        </Route>
+      )}
+
+      {/* Organizer Routes */}
+      {user && user.role === 'tournament_organizer' && (
+        <Route path="/organizer" element={
+          <ProtectedRoute requiredRole="tournament_organizer">
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<OrganizerDashboard />} />
         </Route>
       )}
 

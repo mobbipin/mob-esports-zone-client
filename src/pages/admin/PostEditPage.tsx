@@ -3,17 +3,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../contexts/ToastContext";
+
 import { apiFetch, apiUpload } from "../../lib/api";
 // @ts-ignore
 import ReactQuill from "react-quill";
 // @ts-ignore
 import "react-quill/dist/quill.snow.css";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
 
 export const PostEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { addToast } = useToast();
+
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,9 +59,9 @@ export const PostEditPage: React.FC = () => {
       const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formDataUpload);
       setImageUrl(res.data.url);
       setForm((prev: any) => ({ ...prev, imageUrl: res.data.url }));
-      addToast("Image uploaded!", "success");
+      toast.success("Image uploaded!");
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to upload image", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload image");
     } finally {
       setImageUploading(false);
     }
@@ -79,7 +80,7 @@ export const PostEditPage: React.FC = () => {
           imageUrl: form.imageUrl || imageUrl || undefined
         })
       });
-      addToast("Post updated successfully!", "success");
+      toast.success("Post updated successfully!");
       navigate("/admin/posts");
     } catch (err: any) {
       setError(err.message || err?.toString() || "Failed to update post");

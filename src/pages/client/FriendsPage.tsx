@@ -3,13 +3,12 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import toast from "react-hot-toast";
 
 const FriendsPage: React.FC = () => {
   const { user } = useAuth();
-  const { addToast } = useToast();
   const [friends, setFriends] = useState<any[]>([]);
   const [pending, setPending] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -35,7 +34,7 @@ const FriendsPage: React.FC = () => {
       fetchFriends();
       fetchPending();
     } else if (lastMessage.type === "friend:request") {
-      addToast("New friend request received!", "info");
+      toast.success("New friend request received!");
       fetchPending();
     }
   }, [lastMessage]);
@@ -76,40 +75,40 @@ const FriendsPage: React.FC = () => {
   const sendRequest = async (friendId: string) => {
     try {
       await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ friendId }) });
-      addToast("Friend request sent", "success");
+      toast.success("Friend request sent");
       setRequestSent((prev) => [...prev, friendId]);
       setSearchResults((results) => results.filter((u) => u.id !== friendId));
       fetchPending();
     } catch (err: any) {
-      addToast(err.message || "Failed to send request", "error");
+      toast.error(err.message || "Failed to send request");
     }
   };
   const acceptRequest = async (id: string) => {
     try {
       await apiFetch(`/friends/${id}/accept`, { method: "PUT" });
-      addToast("Friend request accepted", "success");
+      toast.success("Friend request accepted");
       fetchFriends();
       fetchPending();
     } catch (err: any) {
-      addToast(err.message || "Failed to accept request", "error");
+      toast.error(err.message || "Failed to accept request");
     }
   };
   const rejectRequest = async (id: string) => {
     try {
       await apiFetch(`/friends/${id}/reject`, { method: "PUT" });
-      addToast("Friend request rejected", "success");
+      toast.success("Friend request rejected");
       fetchPending();
     } catch (err: any) {
-      addToast(err.message || "Failed to reject request", "error");
+      toast.error(err.message || "Failed to reject request");
     }
   };
   const togglePrivacy = async () => {
     try {
       await apiFetch("/friends/privacy", { method: "PUT", body: JSON.stringify({ isPublic: !privacy }) });
       setPrivacy((p) => (p ? 0 : 1));
-      addToast("Privacy updated", "success");
+      toast.success("Privacy updated");
     } catch (err: any) {
-      addToast(err.message || "Failed to update privacy", "error");
+      toast.error(err.message || "Failed to update privacy");
     }
   };
 

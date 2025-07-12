@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { apiFetch, apiUpload } from "../../lib/api";
-import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
 
 const PAGE_SIZE = 10;
 
 export const FileUploadsPage: React.FC = () => {
-  const { addToast } = useToast();
   const [files, setFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,13 +42,13 @@ export const FileUploadsPage: React.FC = () => {
       const formData = new FormData();
       formData.append("file", file);
       console.log('FormData created, sending to API...');
-      const res = await apiUpload<any>("/upload/file", formData);
+      const res = await apiUpload<any>("/upload/file", formData, false); // Don't show error toast here
       console.log('Upload response:', res);
-      addToast("File uploaded!", "success");
+      toast.success("File uploaded!");
       fetchFiles();
     } catch (err: any) {
       console.error('Upload error:', err);
-      addToast(err.message || err?.toString() || "Failed to upload file", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload file");
     } finally {
       setUploading(false);
     }
@@ -58,11 +57,11 @@ export const FileUploadsPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this file?")) return;
     try {
-      await apiFetch(`/upload/${id}`, { method: "DELETE" });
-      addToast("File deleted!", "success");
+      await apiFetch(`/upload/${id}`, { method: "DELETE" }, true, false); // Don't show error toast here
+      toast.success("File deleted!");
       fetchFiles();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to delete file", "error");
+      toast.error(err.message || err?.toString() || "Failed to delete file");
     }
   };
 

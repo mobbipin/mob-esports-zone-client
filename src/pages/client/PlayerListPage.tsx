@@ -3,7 +3,7 @@ import { apiFetch } from "../../lib/api";
 import { Card, CardContent, Dialog, DialogContent, DialogTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../contexts/ToastContext";
+import toast from "react-hot-toast";
 import { Skeleton } from "../../components/ui/skeleton";
 import { UserPlus, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -74,7 +74,6 @@ const PlayerListPage: React.FC = () => {
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const { user } = useAuth();
-  const { addToast } = useToast();
   const [myTeam, setMyTeam] = useState<any>(null);
   const navigate = useNavigate();
   const [requestSent, setRequestSent] = useState<string[]>([]);
@@ -138,9 +137,9 @@ const PlayerListPage: React.FC = () => {
         method: "POST",
         body: JSON.stringify({ userEmail: player.email })
       });
-      addToast("Invite sent!", "success");
+      toast.success("Invite sent!");
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to send invite", "error");
+      toast.error(err.message || err?.toString() || "Failed to send invite");
     }
   };
 
@@ -148,10 +147,10 @@ const PlayerListPage: React.FC = () => {
     if (!user) return;
     try {
       await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ friendId }) });
-      addToast("Friend request sent", "success");
+      toast.success("Friend request sent");
       setFriendRequests((prev) => [...prev, { friendId, userId: user.id, status: 'pending' }]);
     } catch (err: any) {
-      addToast(err.message || "Failed to send request", "error");
+      toast.error(err.message || "Failed to send request");
     }
   };
 
@@ -160,10 +159,10 @@ const PlayerListPage: React.FC = () => {
     if (!req) return;
     try {
       await apiFetch(`/friends/${req.id}/cancel`, { method: "DELETE" });
-      addToast("Friend request canceled", "success");
+      toast.success("Friend request canceled");
       setFriendRequests((prev) => prev.filter((f) => f.id !== req.id));
     } catch (err: any) {
-      addToast(err.message || "Failed to cancel request", "error");
+      toast.error(err.message || "Failed to cancel request");
     }
   };
   const getFriendStatus = (playerId: string) => {

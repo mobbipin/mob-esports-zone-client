@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { PlusIcon, UserPlusIcon, CrownIcon, SettingsIcon, MessageCircleIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../contexts/ToastContext";
+import { apiFetch, apiUpload } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { apiFetch, apiUpload } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
 
 export const TeamPage: React.FC = () => {
   const { user, setUserData } = useAuth();
-  const { addToast } = useToast();
   const [team, setTeam] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +66,12 @@ export const TeamPage: React.FC = () => {
       const res = await apiFetch<{ status: boolean; data: { id: string } }>("/teams", {
         method: "POST",
         body: JSON.stringify(payload),
-      });
-      addToast("Team created!", "success");
+      }, true, false); // Don't show error toast here
+      toast.success("Team created!");
       refreshTeam(); // Call refreshTeam after successful creation
       // Optionally refetch or redirect
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to create team", "error");
+      toast.error(err.message || err?.toString() || "Failed to create team");
     }
   };
 
@@ -83,13 +82,13 @@ export const TeamPage: React.FC = () => {
       await apiFetch(`/teams/${team.id}`, {
         method: "PUT",
         body: JSON.stringify(formData),
-      });
-      addToast("Team updated!", "success");
+      }, true, false); // Don't show error toast here
+      toast.success("Team updated!");
       refreshTeam(); // Call refreshTeam after successful update
       setIsEditing(false);
       // Optionally refetch
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to update team", "error");
+      toast.error(err.message || err?.toString() || "Failed to update team");
     }
   };
 
@@ -97,12 +96,12 @@ export const TeamPage: React.FC = () => {
   const handleDeleteTeam = async () => {
     if (!team) return;
     try {
-      await apiFetch(`/teams/${team.id}`, { method: "DELETE" });
-      addToast("Team deleted!", "success");
+      await apiFetch(`/teams/${team.id}`, { method: "DELETE" }, true, false); // Don't show error toast here
+      toast.success("Team deleted!");
       refreshTeam(); // Call refreshTeam after successful deletion
       // Optionally refetch or redirect
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to delete team", "error");
+      toast.error(err.message || err?.toString() || "Failed to delete team");
     }
   };
 
@@ -113,10 +112,10 @@ export const TeamPage: React.FC = () => {
       await apiFetch(`/teams/${team.id}/invite`, {
         method: "POST",
         body: JSON.stringify({ userEmail: email }),
-      });
-      addToast("Player invited!", "success");
+      }, true, false); // Don't show error toast here
+      toast.success("Player invited!");
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to invite player", "error");
+      toast.error(err.message || err?.toString() || "Failed to invite player");
     }
   };
 
@@ -130,7 +129,7 @@ export const TeamPage: React.FC = () => {
       formData.append("logo", file);
       const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", formData);
       setLogoUrl(res.data.url);
-      addToast("Logo uploaded!", "success");
+      toast.success("Logo uploaded!");
       await apiFetch(`/teams/${team.id}`, {
         method: "PUT",
         body: JSON.stringify({ logoUrl: res.data.url })
@@ -138,7 +137,7 @@ export const TeamPage: React.FC = () => {
       refreshTeam(); // Call refreshTeam after successful logo upload
       // Optionally refetch
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to upload logo", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload logo");
     } finally {
       setLogoUploading(false);
     }

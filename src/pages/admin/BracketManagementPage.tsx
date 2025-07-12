@@ -3,14 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeftIcon, RefreshCwIcon, CheckCircleIcon, XCircleIcon, UsersIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../contexts/ToastContext";
+
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
 
 export const BracketManagementPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToast } = useToast();
+
 
   const [tournament, setTournament] = useState<any>(null);
   const [bracket, setBracket] = useState<any>(null);
@@ -81,11 +82,11 @@ export const BracketManagementPage: React.FC = () => {
           status: "completed"
         })
       });
-      addToast("Match result updated successfully!", "success");
+      toast.success("Match result updated successfully!");
       setEditingScore(false);
       fetchBracket();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to update match", "error");
+      toast.error(err.message || err?.toString() || "Failed to update match");
     }
   };
 
@@ -94,10 +95,10 @@ export const BracketManagementPage: React.FC = () => {
     setLoading(true);
     try {
       await apiFetch(`/tournaments/${id}/bracket`, { method: "POST" });
-      addToast("Bracket generated!", "success");
+      toast.success("Bracket generated!");
       fetchBracket();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to generate bracket", "error");
+      toast.error(err.message || err?.toString() || "Failed to generate bracket");
     } finally {
       setLoading(false);
     }

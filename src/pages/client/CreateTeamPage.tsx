@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "../../contexts/ToastContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { apiFetch, apiUpload } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { apiFetch, apiUpload } from "../../lib/api";
-import { useAuth } from "../../contexts/AuthContext";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
+import { validateRequired } from "../../lib/utils";
 
 export const CreateTeamPage: React.FC = () => {
   const navigate = useNavigate();
-  const { addToast } = useToast();
   const { user, setUserData } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
@@ -46,13 +46,13 @@ export const CreateTeamPage: React.FC = () => {
       const form = new FormData();
       form.append("logo", file);
       console.log('FormData created, sending to team-logo API...');
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", form);
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", form, false); // Don't show error toast here
       console.log('Team logo upload response:', res);
       setFormData(prev => ({ ...prev, logoUrl: res.data.url }));
-      addToast("Logo uploaded!", "success");
+      toast.success("Logo uploaded!");
     } catch (err: any) {
       console.error('Team logo upload error:', err);
-      addToast(err.message || err?.toString() || "Failed to upload logo", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload logo");
     } finally {
       setLogoUploading(false);
     }
@@ -60,6 +60,12 @@ export const CreateTeamPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Form validation
+    if (!validateRequired(formData.name, "Team name")) return;
+    if (!validateRequired(formData.bio, "Team description")) return;
+    if (!validateRequired(formData.region, "Region")) return;
+    
     setLoading(true);
     setError(null);
     try {
@@ -71,8 +77,8 @@ export const CreateTeamPage: React.FC = () => {
       const res = await apiFetch<{ status: boolean; data: { id: string } }>("/teams", {
         method: "POST",
         body: JSON.stringify(payload)
-      });
-      addToast("Team created!", "success");
+      }, true, false); // Don't show error toast here
+      toast.success("Team created!");
       // Always refresh user data after team creation
       const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
       setUserData(me.data);

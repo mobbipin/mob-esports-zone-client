@@ -1,21 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { CalendarIcon, UsersIcon, TrophyIcon, MapPinIcon, ClockIcon, ArrowLeftIcon } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { CalendarIcon, UsersIcon, TrophyIcon, MapPinIcon, ClockIcon, ArrowLeftIcon, UserIcon, Users2Icon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../contexts/ToastContext";
+
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
 
 export const TournamentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { addToast } = useToast();
+  const navigate = useNavigate();
+
   const [tournament, setTournament] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [showPlayerSelection, setShowPlayerSelection] = useState(false);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -25,6 +31,15 @@ export const TournamentDetailPage: React.FC = () => {
       .catch(err => setError(typeof err === "string" ? err : "Failed to load tournament"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (user?.teamId && tournament?.type === 'squad') {
+      // Fetch team members for player selection
+      apiFetch<{ status: boolean; data: any }>(`/teams/${user.teamId}`)
+        .then(res => setTeamMembers(res.data.members || []))
+        .catch(err => console.error('Failed to load team members:', err));
+    }
+  }, [user?.teamId, tournament?.type]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -41,25 +56,128 @@ export const TournamentDetailPage: React.FC = () => {
     }
   };
 
+  const getTournamentTypeIcon = (type: string) => {
+    switch (type) {
+      case "solo":
+        return <UserIcon className="w-4 h-4" />;
+      case "duo":
+        return <Users2Icon className="w-4 h-4" />;
+      case "squad":
+        return <UsersIcon className="w-4 h-4" />;
+      default:
+        return <UsersIcon className="w-4 h-4" />;
+    }
+  };
+
+  const isRegistered = () => {
+    if (!tournament || !user) return false;
+    
+    if (tournament.type === 'solo') {
+      return tournament.registeredTeams?.some((team: any) => team.id === user.id);
+    } else {
+      return tournament.registeredTeams?.some((team: any) => team.id === user.teamId);
+    }
+  };
+
   // Team registration handler
   const handleRegisterTeam = async () => {
+    if (!user || !id) return;
+    
+    if (tournament.type === 'solo') {
+      // Solo tournament registration
+      setRegistering(true);
+      try {
+        await apiFetch(`/tournaments/${id}/register`, {
+          method: "POST",
+          body: JSON.stringify({ userId: user.id })
+        });
+        toast.success("Registered for tournament!");
+        // Refetch tournament data
+        const res = await apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`);
+        setTournament(res.data);
+      } catch (err: any) {
+        const errorMessage = err?.error || err?.message || err?.toString() || "Failed to register";
+        toast.error(errorMessage);
+      } finally {
+        setRegistering(false);
+      }
+    } else {
+      // Team tournament - show player selection for squad
+      if (tournament.type === 'squad' && user.teamId) {
+        setShowPlayerSelection(true);
+      } else {
+        // Duo tournament or no team
+        setRegistering(true);
+        try {
+          await apiFetch(`/tournaments/${id}/register`, {
+            method: "POST",
+            body: JSON.stringify({ teamId: user.teamId })
+          });
+          toast.success("Team registered for tournament!");
+          const res = await apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`);
+          setTournament(res.data);
+        } catch (err: any) {
+          const errorMessage = err?.error || err?.message || err?.toString() || "Failed to register team";
+          toast.error(errorMessage);
+        } finally {
+          setRegistering(false);
+        }
+      }
+    }
+  };
+
+  const handleSquadRegistration = async () => {
     if (!user?.teamId || !id) return;
+    
     setRegistering(true);
     try {
       await apiFetch(`/tournaments/${id}/register`, {
         method: "POST",
-        body: JSON.stringify({ teamId: user.teamId })
+        body: JSON.stringify({ 
+          teamId: user.teamId,
+          selectedPlayers: selectedPlayers
+        })
       });
-      addToast("Team registered for tournament!", "success");
-      // Refetch tournament data to update participants count
+      toast.success("Team registered for tournament!");
+      setShowPlayerSelection(false);
+      setSelectedPlayers([]);
+      // Refetch tournament data
       const res = await apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`);
       setTournament(res.data);
     } catch (err: any) {
       const errorMessage = err?.error || err?.message || err?.toString() || "Failed to register team";
-      addToast(errorMessage, "error");
+      toast.error(errorMessage);
     } finally {
       setRegistering(false);
     }
+  };
+
+  const handleWithdraw = async () => {
+    if (!user || !id) return;
+    
+    setWithdrawing(true);
+    try {
+      await apiFetch(`/tournaments/${id}/withdraw`, {
+        method: "DELETE"
+      });
+      toast.success("Registration withdrawn successfully!");
+      // Refetch tournament data
+      const res = await apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`);
+      setTournament(res.data);
+    } catch (err: any) {
+      const errorMessage = err?.error || err?.message || err?.toString() || "Failed to withdraw registration";
+      toast.error(errorMessage);
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
+  const togglePlayerSelection = (playerId: string) => {
+    setSelectedPlayers(prev => 
+      prev.includes(playerId) 
+        ? prev.filter(id => id !== playerId)
+        : [...prev, playerId]
+    );
   };
 
   if (loading) return (
@@ -101,6 +219,10 @@ export const TournamentDetailPage: React.FC = () => {
                 </span>
                 <span className={`px-3 py-1 rounded text-sm font-semibold text-white ${getStatusColor(tournament.status)}`}>
                   {tournament.status}
+                </span>
+                <span className="px-3 py-1 bg-blue-600 text-white text-sm font-semibold rounded flex items-center gap-1">
+                  {getTournamentTypeIcon(tournament.type)}
+                  {tournament.type?.toUpperCase()}
                 </span>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{tournament.name}</h1>
@@ -224,31 +346,67 @@ export const TournamentDetailPage: React.FC = () => {
             <Card className="bg-[#15151a] border-[#292932]">
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Registration</h3>
-                {/* Registration Button */}
-                {user ? (
-                  user.teamId ? (
-                    tournament.registeredTeams?.some((team: any) => team.id === user.teamId) ? (
-                      <Button disabled className="w-full bg-green-600 hover:bg-green-600 text-white mb-2">
-                        ✓ Already Registered
+                
+                {/* Registration Status */}
+                {isRegistered() ? (
+                  <div className="space-y-3">
+                    <Button disabled className="w-full bg-green-600 hover:bg-green-600 text-white mb-2">
+                      ✓ Already Registered
+                    </Button>
+                    <Button 
+                      onClick={handleWithdraw} 
+                      disabled={withdrawing}
+                      variant="outline" 
+                      className="w-full border-red-500 text-red-400 hover:bg-red-600 hover:text-white"
+                    >
+                      {withdrawing ? "Withdrawing..." : "Withdraw Registration"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {!user ? (
+                      <div className="space-y-3">
+                        <div className="text-gray-400 text-sm">Login to register for this tournament.</div>
+                        <Button 
+                          onClick={() => navigate('/login')}
+                          className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white"
+                        >
+                          Login to Register
+                        </Button>
+                      </div>
+                    ) : tournament.type === 'solo' ? (
+                      <Button 
+                        onClick={handleRegisterTeam} 
+                        disabled={registering || (tournament.participants || 0) >= (tournament.maxParticipants || 0)} 
+                        className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white"
+                      >
+                        {registering ? "Registering..." : 
+                         (tournament.participants || 0) >= (tournament.maxParticipants || 0) ? "Tournament Full" : "Register as Solo Player"}
                       </Button>
+                    ) : !user.teamId ? (
+                      <div className="space-y-3">
+                        <div className="text-gray-400 text-sm">You must be part of a team to register for this tournament.</div>
+                        <Button 
+                          onClick={() => navigate('/dashboard/create-team')}
+                          className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white"
+                        >
+                          Create/Join Team
+                        </Button>
+                      </div>
                     ) : (
                       <Button 
                         onClick={handleRegisterTeam} 
                         disabled={registering || (tournament.participants || 0) >= (tournament.maxParticipants || 0)} 
-                        className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white mb-2"
+                        className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white"
                       >
                         {registering ? "Registering..." : 
                          (tournament.participants || 0) >= (tournament.maxParticipants || 0) ? "Tournament Full" : "Register Team"}
                       </Button>
-                    )
-                  ) : (
-                    <div className="text-gray-400 mb-2">You must be part of a team to register.</div>
-                  )
-                ) : (
-                  <div className="text-gray-400 mb-2">Login to register your team.</div>
+                    )}
+                  </div>
                 )}
                 
-                <div className="mb-4">
+                <div className="mb-4 mt-4">
                   <div className="flex justify-between text-sm text-gray-400 mb-2">
                     <span>Spots Filled</span>
                     <span>{tournament.participants || 0}/{tournament.maxParticipants || 0}</span>
@@ -262,12 +420,61 @@ export const TournamentDetailPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <Button variant="outline" className="w-full border-[#292932 hover:bg-[#292932] hover:text-white">
+                  <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white">
                     Join Discord
                   </Button>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Player Selection Modal for Squad Tournaments */}
+            {showPlayerSelection && (
+              <Card className="bg-[#15151a] border-[#292932]">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Select Players</h3>
+                  <div className="space-y-3 mb-4">
+                    {teamMembers.map((member: any) => (
+                      <div 
+                        key={member.userId}
+                        className={`flex items-center p-3 rounded-lg cursor-pointer border ${
+                          selectedPlayers.includes(member.userId) 
+                            ? 'bg-[#f34024] border-[#f34024]' 
+                            : 'bg-[#19191d] border-[#292932] hover:bg-[#292932]'
+                        }`}
+                        onClick={() => togglePlayerSelection(member.userId)}
+                      >
+                        <div className="flex-1">
+                          <div className="text-white font-medium">{member.username || member.displayName}</div>
+                          <div className="text-gray-400 text-sm">{member.role}</div>
+                        </div>
+                        {selectedPlayers.includes(member.userId) && (
+                          <div className="text-white">✓</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={handleSquadRegistration}
+                      disabled={registering || selectedPlayers.length === 0}
+                      className="flex-1 bg-[#f34024] hover:bg-[#f34024]/90 text-white"
+                    >
+                      {registering ? "Registering..." : "Register Selected Players"}
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setShowPlayerSelection(false);
+                        setSelectedPlayers([]);
+                      }}
+                      variant="outline"
+                      className="border-[#292932] hover:bg-[#292932] hover:text-white"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Prize Distribution */}
             <Card className="bg-[#15151a] border-[#292932]">
@@ -287,7 +494,7 @@ export const TournamentDetailPage: React.FC = () => {
             {/* Registered Teams */}
             <Card className="bg-[#15151a] border-[#292932]">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Registered Teams</h3>
+                <h3 className="text-xl font-bold text-white mb-4">Registered Participants</h3>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {(tournament.registeredTeams || []).map((team: any) => (
                     <div key={team.id} className="flex items-center space-x-3 mb-2">
@@ -296,18 +503,27 @@ export const TournamentDetailPage: React.FC = () => {
                         alt={team.name}
                         className="w-8 h-8 rounded-full object-cover"
                       />
-                      <span className="text-white font-medium">{team.name}</span>
+                      <div className="flex-1">
+                        <span className="text-white font-medium">{team.name}</span>
+                        <div className="text-gray-400 text-xs">
+                          {team.type === 'player' ? 'Solo Player' : 'Team'}
+                        </div>
+                      </div>
                     </div>
                   ))}
                   {(tournament.registeredTeams || []).length === 0 && (
                     <div className="text-gray-400 text-center py-4">
-                      No teams registered yet
+                      No participants registered yet
                     </div>
                   )}
                 </div>
                 <div className="mt-4 text-center">
-                  <Button variant="outline" className="border-[#292932]  hover:bg-[#292932] text-sm">
-                    View All Teams
+                  <Button 
+                    onClick={() => navigate(`/tournaments/${id}/registered-teams`)}
+                    variant="outline" 
+                    className="border-[#292932] hover:bg-[#292932] text-sm"
+                  >
+                    View All Participants
                   </Button>
                 </div>
               </CardContent>

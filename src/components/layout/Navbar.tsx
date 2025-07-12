@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BellIcon, MenuIcon, XIcon, UserIcon, LogOutIcon, UserPlus, MessageCircle } from "lucide-react";
+import { BellIcon, MenuIcon, XIcon, UserIcon, LogOutIcon, UserPlus } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../ui/button";
 import { apiFetch } from "../../lib/api";
+import toast from "react-hot-toast";
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -74,12 +75,22 @@ export const Navbar: React.FC = () => {
   }, []);
 
   const handleAccept = async (inviteId: string) => {
-    await apiFetch(`/teams/invite/${inviteId}/accept`, { method: "POST" });
-    setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "accepted" } : i));
+    try {
+      await apiFetch(`/teams/invite/${inviteId}/accept`, { method: "POST" }, true, false); // Don't show error toast here
+      toast.success("Team invite accepted!");
+      setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "accepted" } : i));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to accept invite");
+    }
   };
   const handleReject = async (inviteId: string) => {
-    await apiFetch(`/teams/invite/${inviteId}/reject`, { method: "POST" });
-    setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "rejected" } : i));
+    try {
+      await apiFetch(`/teams/invite/${inviteId}/reject`, { method: "POST" }, true, false); // Don't show error toast here
+      toast.success("Team invite rejected!");
+      setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "rejected" } : i));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reject invite");
+    }
   };
 
   const handleLogout = () => {
@@ -93,7 +104,6 @@ export const Navbar: React.FC = () => {
     { to: "/news", label: "News" },
     { to: "/players", label: "Players" },
     { to: "/friends", label: "Friends", icon: <UserPlus className="w-5 h-5" /> },
-    { to: "/messages", label: "Messages", icon: <MessageCircle className="w-5 h-5" /> },
   ];
 
   return (

@@ -3,8 +3,8 @@ import { SearchIcon, FilterIcon, UsersIcon, MessageCircleIcon, EditIcon, TrashIc
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
+import toast from "react-hot-toast";
 import { Skeleton } from "../../components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 
@@ -26,7 +26,6 @@ const DeleteDialog = ({ open, onConfirm, onCancel, message, loading }: { open: b
 };
 
 export const TeamsManagementPage: React.FC = () => {
-  const { addToast } = useToast();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -86,17 +85,17 @@ export const TeamsManagementPage: React.FC = () => {
     if (!deleteDialog.teamId || !deleteDialog.teamName) return;
     try {
       await apiFetch(`/teams/${deleteDialog.teamId}`, { method: "DELETE" });
-      addToast(`Team "${deleteDialog.teamName}" has been deleted`, "success");
+      toast.success(`Team "${deleteDialog.teamName}" has been deleted`);
       fetchTeams();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to delete team", "error");
+      toast.error(err.message || err?.toString() || "Failed to delete team");
     } finally {
       setDeleteDialog({ open: false });
     }
   };
 
   const handleMessageCaptain = (captainName: string) => {
-    addToast(`Message sent to ${captainName}`, "success");
+    toast.success(`Message sent to ${captainName}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -134,11 +133,11 @@ export const TeamsManagementPage: React.FC = () => {
     setDeleting(true);
     try {
       await Promise.all(selectedTeams.map(id => apiFetch(`/teams/${id}`, { method: "DELETE" })));
-      addToast(`${selectedTeams.length} team(s) deleted`, "success");
+      toast.success(`${selectedTeams.length} team(s) deleted`);
       setSelectedTeams([]);
       fetchTeams();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to delete teams", "error");
+      toast.error(err.message || err?.toString() || "Failed to delete teams");
     } finally {
       setBulkDelete({ open: false, count: 0 });
       setDeleting(false);

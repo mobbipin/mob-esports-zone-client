@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { CameraIcon, SaveIcon, UserIcon, GamepadIcon, MapPinIcon, TrophyIcon, UserPlus, MessageCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../contexts/ToastContext";
+import { apiFetch, apiUpload } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { apiFetch, apiUpload } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { 
+  validateRequired, 
+  validateEmail, 
+  validateMinLength, 
+  validateMaxLength 
+} from "../../lib/utils";
 
 export const ProfilePage: React.FC = () => {
   const { user, setUserData } = useAuth();
-  const { addToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     username: user?.username || "",
@@ -25,6 +30,9 @@ export const ProfilePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "");
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+  const [fieldTouched, setFieldTouched] = useState<{ [key: string]: boolean }>({});
+  const [resendLoading, setResendLoading] = useState(false);
   const navigate = useNavigate();
 
   const [achievements, setAchievements] = useState<any[]>([]);
@@ -47,7 +55,11 @@ export const ProfilePage: React.FC = () => {
           rank: res.data.rank || ""
         });
       })
-      .catch(err => setError(typeof err === "string" ? err : "Failed to load profile"))
+      .catch(err => {
+        const errorMessage = typeof err === "string" ? err : "Failed to load profile";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      })
       .finally(() => {
         setLoading(false);
       });
@@ -67,16 +79,153 @@ export const ProfilePage: React.FC = () => {
       .catch(() => setTournamentHistory([]));
   }, [user?.id, user]);
 
+  // Individual field validation functions
+  const validateUsername = (value: string): string => {
+    if (!value.trim()) return "";
+    if (value.length < 2) return "Username must be at least 2 characters long";
+    if (value.length > 32) return "Username must be no more than 32 characters long";
+    return "";
+  };
+
+  const validateEmailField = (value: string): string => {
+    if (!value.trim()) return "";
+    if (!validateEmail(value)) return "Please enter a valid email address";
+    return "";
+  };
+
+  const validateGameUsername = (value: string): string => {
+    if (!value.trim()) return "";
+    if (value.length < 2) return "Game username must be at least 2 characters long";
+    if (value.length > 64) return "Game username must be no more than 64 characters long";
+    return "";
+  };
+
+  const validateBio = (value: string): string => {
+    if (!value.trim()) return "";
+    if (value.length > 500) return "Bio must be no more than 500 characters long";
+    return "";
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: value
     }));
+
+    // Mark field as touched
+    setFieldTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
+
+    // Real-time validation
+    let errorMessage = "";
+    switch (name) {
+      case "username":
+        errorMessage = validateUsername(value);
+        break;
+      case "email":
+        errorMessage = validateEmailField(value);
+        break;
+      case "gameUsername":
+        errorMessage = validateGameUsername(value);
+        break;
+      case "bio":
+        errorMessage = validateBio(value);
+        break;
+      default:
+        break;
+    }
+
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: errorMessage
+    }));
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    // Mark field as touched on blur
+    setFieldTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
+
+    // Validate on blur
+    let errorMessage = "";
+    switch (name) {
+      case "username":
+        errorMessage = validateUsername(value);
+        break;
+      case "email":
+        errorMessage = validateEmailField(value);
+        break;
+      case "gameUsername":
+        errorMessage = validateGameUsername(value);
+        break;
+      case "bio":
+        errorMessage = validateBio(value);
+        break;
+      default:
+        break;
+    }
+
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: errorMessage
+    }));
+  };
+
+  // Client-side validation that matches backend requirements
+  const validateForm = (): boolean => {
+    const errors: { [key: string]: string } = {};
+
+    // Username validation (backend: min(2).max(32))
+    const usernameError = validateUsername(formData.username);
+    if (usernameError) errors.username = usernameError;
+
+    // Email validation (backend: email())
+    const emailError = validateEmailField(formData.email);
+    if (emailError) errors.email = emailError;
+
+    // Game username validation (backend: min(2).max(64) for displayName)
+    const gameUsernameError = validateGameUsername(formData.gameUsername);
+    if (gameUsernameError) errors.gameUsername = gameUsernameError;
+
+    // Bio validation (optional but if provided, should be reasonable length)
+    const bioError = validateBio(formData.bio);
+    if (bioError) errors.bio = bioError;
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Clear previous errors
+    setError(null);
+
+    // Mark all fields as touched for validation display
+    setFieldTouched({
+      username: true,
+      email: true,
+      gameUsername: true,
+      region: true,
+      bio: true,
+      rank: true
+    });
+
+    // Client-side validation
+    if (!validateForm()) {
+      toast.error("Please fix the validation errors before submitting");
+      return;
+    }
+
     setLoading(true);
     try {
       // Update User table
@@ -87,7 +236,8 @@ export const ProfilePage: React.FC = () => {
           displayName: formData.gameUsername,
           username: formData.username,
         }),
-      });
+      }, true, false); // Don't show error toast here
+      
       // Update PlayerProfile table
       await apiFetch(`/players/${user.id}`, {
         method: "PUT",
@@ -97,22 +247,40 @@ export const ProfilePage: React.FC = () => {
           rank: formData.rank,
           gameId: formData.gameUsername,
         }),
-      });
+      }, true, false); // Don't show error toast here
+      
       // Refetch user
       const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
       setUserData(me.data);
-      addToast("Profile updated successfully!", "success");
+      toast.success("Profile updated successfully!");
       setIsEditing(false);
     } catch (err: any) {
-      // Show Zod validation errors as toast
+      // Handle validation errors from backend
       if (err?.issues && Array.isArray(err.issues) && err.issues.length > 0) {
-        addToast(err.message || err.issues[0].message, "error");
-      } else if (typeof err === "string") {
-        addToast(err, "error");
+        const backendErrors: { [key: string]: string } = {};
+        err.issues.forEach((issue: any) => {
+          const field = issue.path[0];
+          // Map backend field names to frontend field names
+          const fieldMap: { [key: string]: string } = {
+            displayName: 'gameUsername',
+            username: 'username',
+            email: 'email'
+          };
+          const frontendField = fieldMap[field] || field;
+          backendErrors[frontendField] = issue.message;
+        });
+        setFieldErrors(backendErrors);
+        toast.error("Please fix the validation errors");
+      } else if (err?.fieldErrors) {
+        // Handle field-specific errors
+        setFieldErrors(err.fieldErrors);
+        toast.error("Please fix the validation errors");
       } else {
-        addToast(err.message || "Failed to update profile", "error");
+        // Handle general errors
+        const errorMessage = typeof err === "string" ? err : err.message || "Failed to update profile";
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
-      setError("Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -127,7 +295,25 @@ export const ProfilePage: React.FC = () => {
       bio: user?.bio || "",
       rank: user?.rank || ""
     });
+    setFieldErrors({});
+    setFieldTouched({});
+    setError(null);
     setIsEditing(false);
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    try {
+      await apiFetch('/auth/resend-verification-user', {
+        method: 'POST'
+      });
+      toast.success('Verification email sent! Check your inbox.');
+    } catch (error) {
+      const errorMessage = typeof error === 'string' ? error : 'Failed to send verification email';
+      toast.error(errorMessage);
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,19 +323,19 @@ export const ProfilePage: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("avatar", file);
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/avatar", formData);
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/avatar", formData, false); // Don't show error toast here
       setAvatarUrl(res.data.url);
-      addToast("Avatar uploaded!", "success");
+      toast.success("Avatar uploaded!");
       // Update user profile with new avatar
       await apiFetch(`/players/${user.id}`, {
         method: "PUT",
         body: JSON.stringify({ avatar: res.data.url })
-      });
+      }, true, false); // Don't show error toast here
       // Refetch user to update avatar in context
       const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
       setUserData(me.data);
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to upload avatar", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload avatar");
     } finally {
       setAvatarUploading(false);
     }
@@ -173,7 +359,6 @@ export const ProfilePage: React.FC = () => {
       </div>
     </div>
   );
-  if (error) return <div className="text-center text-red-500">{error}</div>;
 
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
@@ -201,10 +386,11 @@ export const ProfilePage: React.FC = () => {
                     <div className="flex space-x-2">
                       <Button 
                         onClick={handleSubmit}
+                        disabled={loading}
                         className="bg-[#f34024] hover:bg-[#f34024]/90 text-white"
                       >
                         <SaveIcon className="w-4 h-4 mr-2" />
-                        Save
+                        {loading ? "Saving..." : "Save"}
                       </Button>
                       <Button 
                         onClick={handleCancel}
@@ -239,6 +425,37 @@ export const ProfilePage: React.FC = () => {
                     <h3 className="text-lg font-bold text-white">{user?.username}</h3>
                     <p className="text-gray-400">{user?.email}</p>
                     <p className="text-[#f34024] text-sm font-medium">{user?.rank || "Unranked"}</p>
+                    
+                    {/* Email Verification Status */}
+                    <div className="mt-3">
+                      {user?.emailVerified ? (
+                        <div className="flex items-center text-green-400 text-sm">
+                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Email Verified
+                        </div>
+                      ) : (
+                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3">
+                          <div className="flex items-center text-yellow-400 text-sm mb-2">
+                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            Email Not Verified
+                          </div>
+                          <p className="text-yellow-300 text-xs mb-3">
+                            Verify your email to create teams and register for tournaments
+                          </p>
+                          <Button 
+                            onClick={handleResendVerification}
+                            disabled={resendLoading}
+                            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-xs py-1"
+                          >
+                            {resendLoading ? "Sending..." : "Resend Verification Email"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -247,44 +464,62 @@ export const ProfilePage: React.FC = () => {
                     <div>
                       <label className="block text-sm font-medium text-white mb-2">
                         <UserIcon className="w-4 h-4 inline mr-2" />
-                        Username
+                        Username *
                       </label>
                       <Input
                         name="username"
                         value={formData.username}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         disabled={!isEditing}
-                        className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                        className={`bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] ${
+                          fieldErrors.username && fieldTouched.username ? 'border-red-500' : ''
+                        }`}
                       />
+                      {fieldErrors.username && fieldTouched.username && (
+                        <p className="text-red-500 text-xs mt-1">{fieldErrors.username}</p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-white mb-2">
-                        Email Address
+                        Email Address *
                       </label>
                       <Input
                         name="email"
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         disabled={!isEditing}
-                        className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                        className={`bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] ${
+                          fieldErrors.email && fieldTouched.email ? 'border-red-500' : ''
+                        }`}
                       />
+                      {fieldErrors.email && fieldTouched.email && (
+                        <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-white mb-2">
                         <GamepadIcon className="w-4 h-4 inline mr-2" />
-                        Game Username
+                        Game Username *
                       </label>
                       <Input
                         name="gameUsername"
                         value={formData.gameUsername}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         disabled={!isEditing}
                         placeholder="Your in-game name"
-                        className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
+                        className={`bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] ${
+                          fieldErrors.gameUsername && fieldTouched.gameUsername ? 'border-red-500' : ''
+                        }`}
                       />
+                      {fieldErrors.gameUsername && fieldTouched.gameUsername && (
+                        <p className="text-red-500 text-xs mt-1">{fieldErrors.gameUsername}</p>
+                      )}
                     </div>
 
                     <div>
@@ -333,11 +568,20 @@ export const ProfilePage: React.FC = () => {
                         name="bio"
                         value={formData.bio}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         disabled={!isEditing}
                         rows={4}
                         placeholder="Tell us about yourself..."
-                        className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none"
+                        className={`w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none ${
+                          fieldErrors.bio && fieldTouched.bio ? 'border-red-500' : ''
+                        }`}
                       />
+                      {fieldErrors.bio && fieldTouched.bio && (
+                        <p className="text-red-500 text-xs mt-1">{fieldErrors.bio}</p>
+                      )}
+                      <p className="text-gray-500 text-xs mt-1">
+                        {formData.bio.length}/500 characters
+                      </p>
                     </div>
                   </div>
                 </form>

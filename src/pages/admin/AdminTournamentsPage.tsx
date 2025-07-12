@@ -4,8 +4,8 @@ import { PlusIcon, SearchIcon, FilterIcon, CalendarIcon, UsersIcon, TrophyIcon, 
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
+import toast from "react-hot-toast";
 import { Skeleton } from "../../components/ui/skeleton";
 
 // Add DeleteDialog component (copied from TeamsManagementPage)
@@ -26,7 +26,6 @@ const DeleteDialog = ({ open, onConfirm, onCancel, message, loading }: { open: b
 };
 
 export const AdminTournamentsPage: React.FC = () => {
-  const { addToast } = useToast();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -67,10 +66,10 @@ export const AdminTournamentsPage: React.FC = () => {
     if (confirm(`Are you sure you want to delete "${tournamentTitle}"? This action cannot be undone.`)) {
       try {
         await apiFetch(`/tournaments/${tournamentId}`, { method: "DELETE" });
-        addToast(`Tournament "${tournamentTitle}" has been deleted`, "success");
+        toast.success(`Tournament "${tournamentTitle}" has been deleted`);
         fetchTournaments();
       } catch (err: any) {
-        addToast(err?.toString() || "Failed to delete tournament", "error");
+        toast.error(err?.toString() || "Failed to delete tournament");
       }
     }
   };
@@ -82,10 +81,10 @@ export const AdminTournamentsPage: React.FC = () => {
           method: "PUT",
           body: JSON.stringify({ status: "cancelled" })
         });
-        addToast(`Tournament "${tournamentTitle}" has been cancelled`, "info");
+        toast.success(`Tournament "${tournamentTitle}" has been cancelled`);
         fetchTournaments();
       } catch (err: any) {
-        addToast(err?.toString() || "Failed to cancel tournament", "error");
+        toast.error(err?.toString() || "Failed to cancel tournament");
       }
     }
   };
@@ -338,11 +337,11 @@ export const AdminTournamentsPage: React.FC = () => {
           setDeleting(true);
           try {
             await apiFetch(`/tournaments/${deleteDialog.tournamentId}`, { method: "DELETE" });
-            addToast(`Tournament "${deleteDialog.tournamentName}" deleted`, "success");
+            toast.success(`Tournament "${deleteDialog.tournamentName}" deleted`);
             // Refresh the tournament list here
             fetchTournaments();
           } catch (err: any) {
-            addToast(err.message || err?.toString() || "Failed to delete tournament", "error");
+            toast.error(err.message || err?.toString() || "Failed to delete tournament");
           } finally {
             setDeleteDialog({ open: false });
             setDeleting(false);

@@ -5,16 +5,15 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
 
 export const ClientTournamentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("available");
   const { user } = useAuth();
-  const { addToast } = useToast();
   const [availableTournaments, setAvailableTournaments] = useState<any[]>([]);
   const [registeredTournaments, setRegisteredTournaments] = useState<any[]>([]);
   const [pastTournaments, setPastTournaments] = useState<any[]>([]);
@@ -41,7 +40,7 @@ export const ClientTournamentsPage: React.FC = () => {
 
   const handleRegister = async (tournamentId: string) => {
     if (!user?.teamId) {
-      addToast("You must be part of a team to register.", "error");
+      toast.error("You must be part of a team to register.");
       return;
     }
     setRegisteringId(tournamentId);
@@ -50,10 +49,10 @@ export const ClientTournamentsPage: React.FC = () => {
         method: "POST",
         body: JSON.stringify({ teamId: user.teamId })
       });
-      addToast("Team registered for tournament!", "success");
+      toast.success("Team registered for tournament!");
       // Optionally refetch tournaments
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to register team", "error");
+      toast.error(err.message || err?.toString() || "Failed to register team");
     } finally {
       setRegisteringId(null);
     }

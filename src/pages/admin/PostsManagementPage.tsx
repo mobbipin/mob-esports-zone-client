@@ -3,8 +3,8 @@ import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, EyeIcon, Calenda
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../contexts/ToastContext";
 import { apiFetch, apiUpload } from "../../lib/api";
+import toast from "react-hot-toast";
 // @ts-ignore
 import ReactQuill from "react-quill";
 // @ts-ignore
@@ -29,7 +29,6 @@ const DeleteDialog = ({ open, onConfirm, onCancel, message }: { open: boolean, o
 };
 
 export const PostsManagementPage: React.FC = () => {
-  const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -107,10 +106,10 @@ export const PostsManagementPage: React.FC = () => {
     if (!deleteDialog.postId || !deleteDialog.postTitle) return;
     try {
       await apiFetch(`/posts/${deleteDialog.postId}`, { method: "DELETE" });
-      addToast(`Post "${deleteDialog.postTitle}" has been deleted`, "success");
+      toast.success(`Post "${deleteDialog.postTitle}" has been deleted`);
       fetchPosts();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to delete post", "error");
+      toast.error(err.message || err?.toString() || "Failed to delete post");
     } finally {
       setDeleteDialog({ open: false });
     }
@@ -128,12 +127,12 @@ export const PostsManagementPage: React.FC = () => {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      addToast("Post created successfully!", "success");
+      toast.success("Post created successfully!");
       setShowCreateModal(false);
       setFormData({ title: "", content: "", tags: "", status: "draft", imageUrl: "" });
       fetchPosts();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to create post", "error");
+      toast.error(err.message || err?.toString() || "Failed to create post");
     }
   };
 
@@ -147,9 +146,9 @@ export const PostsManagementPage: React.FC = () => {
       const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formDataUpload);
       setImageUrl(res.data.url);
       setFormData(prev => ({ ...prev, imageUrl: res.data.url }));
-      addToast("Image uploaded!", "success");
+      toast.success("Image uploaded!");
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to upload image", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload image");
     } finally {
       setImageUploading(false);
     }
@@ -192,9 +191,9 @@ export const PostsManagementPage: React.FC = () => {
       formDataUpload.append("file", file);
       const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formDataUpload);
       setEditFormData(prev => ({ ...prev, imageUrl: res.data.url }));
-      addToast("Image uploaded!", "success");
+      toast.success("Image uploaded!");
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to upload image", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload image");
     } finally {
       setImageUploading(false);
     }

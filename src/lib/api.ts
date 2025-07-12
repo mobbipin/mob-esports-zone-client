@@ -1,4 +1,5 @@
 // API utility for MOB Esports
+import toast from "react-hot-toast";
 
 const BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
 
@@ -17,47 +18,84 @@ function getHeaders(isJson = true) {
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
-  isJson = true
+  isJson = true,
+  showErrorToast = true
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      ...getHeaders(isJson),
-      ...(options.headers || {}),
-    },
-  });
-  const data = await res.json();
-  if (!res.ok || data.status === false) {
-    let message = data.message || 'API Error';
-    if (data.error && data.error.issues && Array.isArray(data.error.issues) && data.error.issues.length > 0) {
-      message = data.error.issues[0].message || message;
-    } else if (typeof data.error === 'string') {
-      message = data.error;
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        ...getHeaders(isJson),
+        ...(options.headers || {}),
+      },
+    });
+    const data = await res.json();
+    
+    // Always show response in toast regardless of status
+    if (data.message) {
+      if (res.ok && data.status !== false) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.message);
+      }
+    } else if (!res.ok || data.status === false) {
+      let message = 'API Error';
+      if (data.error && data.error.issues && Array.isArray(data.error.issues) && data.error.issues.length > 0) {
+        message = data.error.issues[0].message || message;
+      } else if (typeof data.error === 'string') {
+        message = data.error;
+      }
+      if (showErrorToast) {
+        toast.error(message);
+      }
+      throw { ...data.error, message };
     }
-    throw { ...data.error, message };
+    return data;
+  } catch (error: any) {
+    if (showErrorToast && error.message) {
+      toast.error(error.message);
+    }
+    throw error;
   }
-  return data;
 }
 
 // Helper for file uploads (multipart/form-data)
-export async function apiUpload<T>(path: string, formData: FormData) {
-  const token = getToken();
-  const headers: Record<string, string> = {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
-  const data = await res.json();
-  if (!res.ok || data.status === false) {
-    let message = data.message || 'API Error';
-    if (data.error && data.error.issues && Array.isArray(data.error.issues) && data.error.issues.length > 0) {
-      message = data.error.issues[0].message || message;
-    } else if (typeof data.error === 'string') {
-      message = data.error;
+export async function apiUpload<T>(path: string, formData: FormData, showErrorToast = true) {
+  try {
+    const token = getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    const data = await res.json();
+    
+    // Always show response in toast regardless of status
+    if (data.message) {
+      if (res.ok && data.status !== false) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.message);
+      }
+    } else if (!res.ok || data.status === false) {
+      let message = 'API Error';
+      if (data.error && data.error.issues && Array.isArray(data.error.issues) && data.error.issues.length > 0) {
+        message = data.error.issues[0].message || message;
+      } else if (typeof data.error === 'string') {
+        message = data.error;
+      }
+      if (showErrorToast) {
+        toast.error(message);
+      }
+      throw { ...data.error, message };
     }
-    throw { ...data.error, message };
+    return data;
+  } catch (error: any) {
+    if (showErrorToast && error.message) {
+      toast.error(error.message);
+    }
+    throw error;
   }
-  return data;
 } 

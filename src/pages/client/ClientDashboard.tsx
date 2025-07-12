@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { TrophyIcon, UsersIcon, CalendarIcon, TrendingUpIcon, StarIcon, ArrowRightIcon, UserPlus, MessageCircle } from "lucide-react";
+import { TrophyIcon, UsersIcon, CalendarIcon, TrendingUpIcon, StarIcon, ArrowRightIcon, UserPlus, LogOutIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
-import { useToast } from "../../contexts/ToastContext";
+import toast from "react-hot-toast";
 import { Skeleton } from "../../components/ui/skeleton";
 
 export const ClientDashboard: React.FC = () => {
   const { user, setUserData } = useAuth();
-  const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playerStats, setPlayerStats] = useState<any>(null);
   const [team, setTeam] = useState<any>(null);
-  const [upcomingTournaments, setUpcomingTournaments] = useState<any[]>([]);
+  const [registeredTournaments, setRegisteredTournaments] = useState<any[]>([]);
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
 
@@ -37,9 +36,9 @@ export const ClientDashboard: React.FC = () => {
           setTeam(null);
         }
 
-        // Fetch upcoming tournaments (registered or available)
-        const tournamentsRes: any = await apiFetch(`/tournaments?status=upcoming&playerId=${user.id}`);
-        setUpcomingTournaments(tournamentsRes.data || []);
+        // Fetch registered tournaments
+        const tournamentsRes: any = await apiFetch(`/tournaments?playerId=${user.id}`);
+        setRegisteredTournaments(tournamentsRes.data || []);
 
         // Fetch recent matches (from tournaments the player participated in)
         let matches: any[] = [];
@@ -71,12 +70,24 @@ export const ClientDashboard: React.FC = () => {
   const handleAccept = async (inviteId: string) => {
     await apiFetch(`/teams/invite/${inviteId}/accept`, { method: "POST" });
     setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "accepted" } : i));
-    addToast("Invite accepted!", "success");
+    toast.success("Invite accepted!");
   };
+  
   const handleReject = async (inviteId: string) => {
     await apiFetch(`/teams/invite/${inviteId}/reject`, { method: "POST" });
     setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "rejected" } : i));
-    addToast("Invite rejected!", "success");
+    toast.success("Invite rejected!");
+  };
+
+  const handleWithdrawFromTournament = async (tournamentId: string) => {
+    try {
+      await apiFetch(`/tournaments/${tournamentId}/withdraw`, { method: "DELETE" });
+      setRegisteredTournaments(prev => prev.filter(t => t.id !== tournamentId));
+      toast.success("Withdrawn from tournament successfully!");
+    } catch (err: any) {
+      const errorMessage = err?.error || err?.message || err?.toString() || "Failed to withdraw from tournament";
+      toast.error(errorMessage);
+    }
   };
 
   if (loading) return (
@@ -103,7 +114,7 @@ export const ClientDashboard: React.FC = () => {
 
   // Stats
   const stats = [
-    { label: "Tournaments Joined", value: playerStats?.achievements?.length || 0, icon: TrophyIcon, color: "text-[#f34024]" },
+    { label: "Tournaments Joined", value: registeredTournaments.length, icon: TrophyIcon, color: "text-[#f34024]" },
     { label: "Current Rank", value: playerStats?.rank || "Unranked", icon: StarIcon, color: "text-yellow-500" },
     { label: "Team Members", value: team ? `${team.members?.length || 1}/${team.maxMembers || "-"}` : "-", icon: UsersIcon, color: "text-blue-500" },
     { label: "Win Rate", value: playerStats?.winRate ? `${Math.round(playerStats.winRate * 100)}%` : "-", icon: TrendingUpIcon, color: "text-green-500" }
@@ -145,20 +156,20 @@ export const ClientDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Upcoming Tournaments */}
+            {/* Registered Tournaments */}
             <Card className="bg-[#15151a] border-[#292932]">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-white">Upcoming Tournaments</h2>
-                  <Link to="/dashboard/tournaments" className="flex items-center text-[#f34024] hover:text-[#f34024]/80 text-sm">
-                    View All <ArrowRightIcon className="w-4 h-4 ml-1" />
+                  <h2 className="text-xl font-bold text-white">My Tournaments</h2>
+                  <Link to="/tournaments" className="flex items-center text-[#f34024] hover:text-[#f34024]/80 text-sm">
+                    Browse All <ArrowRightIcon className="w-4 h-4 ml-1" />
                   </Link>
                 </div>
                 <div className="space-y-4">
-                  {upcomingTournaments.length === 0 ? (
-                    <div className="text-gray-400">No upcoming tournaments.</div>
+                  {registeredTournaments.length === 0 ? (
+                    <div className="text-gray-400">You haven't registered for any tournaments yet.</div>
                   ) : (
-                    upcomingTournaments.map((tournament: any) => (
+                    registeredTournaments.map((tournament: any) => (
                       <div key={tournament.id} className="flex items-center justify-between p-4 bg-[#19191d] rounded-lg">
                         <div className="flex-1">
                           <h3 className="text-white font-medium mb-1">{tournament.name}</h3>
@@ -169,9 +180,20 @@ export const ClientDashboard: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-[#f34024] font-bold text-sm mb-1">{tournament.prizePool ? `$${tournament.prizePool}` : "TBA"}</div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium bg-blue-600 text-white`}>
-                            {tournament.status}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-medium bg-blue-600 text-white`}>
+                              {tournament.status}
+                            </span>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-red-500 text-red-400 hover:bg-red-600 hover:text-white"
+                              onClick={() => handleWithdrawFromTournament(tournament.id)}
+                            >
+                              <LogOutIcon className="w-3 h-3 mr-1" />
+                              Withdraw
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -225,13 +247,13 @@ export const ClientDashboard: React.FC = () => {
                     </Button>
                   </Link>
                   <Link to={team ? "/dashboard/manage-team" : "/dashboard/create-team"}>
-                    <Button variant="outline" className="w-full border-[#292932]  hover:bg-[#292932] hover:text-white justify-start">
+                    <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start">
                       <UsersIcon className="w-4 h-4 mr-2" />
                       {team ? "Manage Team" : "Create Team"}
                     </Button>
                   </Link>
                   <Link to="/dashboard/profile">
-                    <Button variant="outline" className="w-full border-[#292932]  hover:bg-[#292932] hover:text-white justify-start">
+                    <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start">
                       <StarIcon className="w-4 h-4 mr-2" />
                       Edit Profile
                     </Button>
@@ -292,22 +314,14 @@ export const ClientDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Add a section for Friends and Messages quick access */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+        {/* Add a section for Friends quick access */}
+        <div className="mt-8">
           <div className="bg-[#15151a] border border-[#292932] rounded-xl p-6 flex items-center gap-4">
             <UserPlus className="w-10 h-10 text-[#f34024]" />
             <div className="flex-1">
               <div className="text-lg text-white font-semibold mb-1">Friends</div>
               <div className="text-gray-400 text-sm mb-2">Manage your friends and requests</div>
-              <a href="/friends" className="text-[#f34024] hover:underline">Go to Friends</a>
-            </div>
-          </div>
-          <div className="bg-[#15151a] border border-[#292932] rounded-xl p-6 flex items-center gap-4">
-            <MessageCircle className="w-10 h-10 text-[#f34024]" />
-            <div className="flex-1">
-              <div className="text-lg text-white font-semibold mb-1">Messages</div>
-              <div className="text-gray-400 text-sm mb-2">Chat with friends and view group messages</div>
-              <a href="/messages" className="text-[#f34024] hover:underline">Go to Messages</a>
+              <Link to="/friends" className="text-[#f34024] hover:underline">Go to Friends</Link>
             </div>
           </div>
         </div>

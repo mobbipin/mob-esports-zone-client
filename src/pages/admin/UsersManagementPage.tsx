@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { SearchIcon, FilterIcon, MoreVerticalIcon, BanIcon, ShieldIcon, UserIcon, MailIcon } from "lucide-react";
+import { SearchIcon, FilterIcon, EyeIcon, BanIcon, CrownIcon, UserCheckIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../contexts/ToastContext";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
 
 // Add Modal component (styled like DeleteDialog)
 const Modal = ({ open, onClose, title, children }: { open: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
@@ -24,7 +24,6 @@ const Modal = ({ open, onClose, title, children }: { open: boolean, onClose: () 
 };
 
 export const UsersManagementPage: React.FC = () => {
-  const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -42,6 +41,8 @@ export const UsersManagementPage: React.FC = () => {
   const [promoteDialog, setPromoteDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
   const [bulkBanDialog, setBulkBanDialog] = useState(false);
   const [unbanDialog, setUnbanDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
+  const [pendingOrganizers, setPendingOrganizers] = useState<any[]>([]);
+  const [organizersLoading, setOrganizersLoading] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -60,8 +61,21 @@ export const UsersManagementPage: React.FC = () => {
     }
   };
 
+  const fetchPendingOrganizers = async () => {
+    setOrganizersLoading(true);
+    try {
+      const res = await apiFetch<any>('/auth/pending-organizers');
+      setPendingOrganizers(res.data || []);
+    } catch (err: any) {
+      console.error("Pending organizers API error:", err);
+    } finally {
+      setOrganizersLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchPendingOrganizers();
     // eslint-disable-next-line
   }, [page, searchTerm]);
 
@@ -101,80 +115,89 @@ export const UsersManagementPage: React.FC = () => {
       setViewUser(res.data);
       setViewModalOpen(true);
     } catch (err: any) {
-      addToast(err.message || err?.toString() || 'Failed to load user details', 'error');
+      toast.error(err.message || err?.toString() || 'Failed to load user details');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleBanUser = (userId: string, username: string) => {
-    setBanDialog({ open: true, userId, username });
-  };
-  const confirmBanUser = async () => {
-    if (!banDialog.userId) return;
+  const handleBanUser = async (userId: string) => {
     setActionLoading(true);
     try {
-      await apiFetch(`/admin/users/${banDialog.userId}/ban`, { method: 'PUT' });
-      addToast(`User ${banDialog.username} has been banned`, 'success');
+      await apiFetch(`/players/${userId}/ban`, { method: "PUT" }, true, false); // Don't show error toast here
+      toast.success("User banned successfully");
       fetchUsers();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || 'Failed to ban user', 'error');
+      toast.error(err.message || "Failed to ban user");
     } finally {
+      setActionLoading(false);
       setBanDialog({ open: false });
-      setActionLoading(false);
     }
   };
 
-  const handlePromoteUser = (userId: string, username: string) => {
-    setPromoteDialog({ open: true, userId, username });
-  };
-  const confirmPromoteUser = async () => {
-    if (!promoteDialog.userId) return;
+  const handlePromoteUser = async (userId: string) => {
     setActionLoading(true);
     try {
-      await apiFetch(`/users/${promoteDialog.userId}`, { method: 'PUT', body: JSON.stringify({ role: 'admin' }) });
-      addToast(`User ${promoteDialog.username} has been promoted to admin`, 'success');
+      await apiFetch(`/players/${userId}/promote`, { method: "PUT" }, true, false); // Don't show error toast here
+      toast.success("User promoted to admin successfully");
       fetchUsers();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || 'Failed to promote user', 'error');
+      toast.error(err.message || "Failed to promote user");
     } finally {
-      setPromoteDialog({ open: false });
       setActionLoading(false);
+      setPromoteDialog({ open: false });
     }
   };
 
-  const handleBulkBan = () => {
-    setBulkBanDialog(true);
-  };
-  const confirmBulkBan = async () => {
+  const handleBulkBan = async () => {
+    if (selectedUsers.length === 0) {
+      toast.error("Please select users to ban");
+      return;
+    }
     setActionLoading(true);
     try {
-      await Promise.all(selectedUsers.map(id => apiFetch(`/admin/users/${id}/ban`, { method: 'PUT' })));
-      addToast(`${selectedUsers.length} user(s) banned`, 'success');
+      await apiFetch("/players/bulk-ban", {
+        method: "PUT",
+        body: JSON.stringify({ userIds: selectedUsers })
+      }, true, false); // Don't show error toast here
+      toast.success(`${selectedUsers.length} users banned successfully`);
       setSelectedUsers([]);
       fetchUsers();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || 'Failed to ban users', 'error');
+      toast.error(err.message || "Failed to ban users");
     } finally {
-      setBulkBanDialog(false);
       setActionLoading(false);
+      setBulkBanDialog(false);
     }
   };
 
-  const handleUnbanUser = (userId: string, username: string) => {
-    setUnbanDialog({ open: true, userId, username });
-  };
-  const confirmUnbanUser = async () => {
-    if (!unbanDialog.userId) return;
+  const handleUnbanUser = async (userId: string) => {
     setActionLoading(true);
     try {
-      await apiFetch(`/admin/users/${unbanDialog.userId}/unban`, { method: 'PUT' });
-      addToast(`User ${unbanDialog.username} has been unbanned`, 'success');
+      await apiFetch(`/players/${userId}/unban`, { method: "PUT" }, true, false); // Don't show error toast here
+      toast.success("User unbanned successfully");
       fetchUsers();
     } catch (err: any) {
-      addToast(err.message || err?.toString() || 'Failed to unban user', 'error');
+      toast.error(err.message || "Failed to unban user");
     } finally {
+      setActionLoading(false);
       setUnbanDialog({ open: false });
+    }
+  };
+
+  const handleApproveOrganizer = async (organizerId: string) => {
+    setActionLoading(true);
+    try {
+      await apiFetch('/auth/approve-organizer', {
+        method: 'POST',
+        body: JSON.stringify({ organizerId })
+      }, true, false);
+      toast.success("Tournament organizer approved successfully");
+      fetchPendingOrganizers();
+      fetchUsers(); // Refresh users list as well
+    } catch (err: any) {
+      toast.error(err.message || "Failed to approve organizer");
+    } finally {
       setActionLoading(false);
     }
   };
@@ -229,11 +252,57 @@ export const UsersManagementPage: React.FC = () => {
             Export Users
           </Button>
           <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-            <UserIcon className="w-4 h-4 mr-2" />
+            <UserCheckIcon className="w-4 h-4 mr-2" />
             Add User
           </Button>
         </div>
       </div>
+
+      {/* Pending Tournament Organizers */}
+      {pendingOrganizers.length > 0 && (
+        <Card className="bg-[#15151a] border-[#292932]">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <CrownIcon className="w-5 h-5 text-yellow-500" />
+              <h2 className="text-lg font-semibold text-white">Pending Tournament Organizers</h2>
+              <span className="bg-yellow-600 text-white text-xs px-2 py-1 rounded-full">
+                {pendingOrganizers.length}
+              </span>
+            </div>
+            
+            <div className="space-y-3">
+              {pendingOrganizers.map((organizer) => (
+                <div key={organizer.id} className="flex items-center justify-between p-3 bg-[#19191d] rounded-lg border border-[#292932]">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-medium text-sm">
+                        {organizer.username?.charAt(0).toUpperCase() || organizer.email?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-white font-medium">{organizer.username || 'No username'}</div>
+                      <div className="text-gray-400 text-sm">{organizer.email}</div>
+                      <div className="text-gray-500 text-xs">
+                        Registered: {new Date(organizer.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproveOrganizer(organizer.id)}
+                      disabled={actionLoading}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {actionLoading ? "Approving..." : "Approve"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card className="bg-[#15151a] border-[#292932]">
@@ -289,7 +358,7 @@ export const UsersManagementPage: React.FC = () => {
               </span>
               <div className="flex space-x-2">
                 <Button size="sm" variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
-                  <MailIcon className="w-4 h-4 mr-2" />
+                  <UserCheckIcon className="w-4 h-4 mr-2" />
                   Send Message
                 </Button>
                 <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white" onClick={handleBulkBan}>
@@ -397,7 +466,7 @@ export const UsersManagementPage: React.FC = () => {
                           {user.status === "banned" ? (
                             <Button
                               size="sm"
-                              onClick={() => handleUnbanUser(user.id, user.username)}
+                              onClick={() => handleUnbanUser(user.id)}
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               Unban
@@ -407,17 +476,17 @@ export const UsersManagementPage: React.FC = () => {
                               {user.role === "player" && user.status !== "banned" && (
                                 <Button
                                   size="sm"
-                                  onClick={() => handlePromoteUser(user.id, user.username)}
+                                  onClick={() => handlePromoteUser(user.id)}
                                   className="bg-purple-600 hover:bg-purple-700 text-white"
                                 >
-                                  <ShieldIcon className="w-3 h-3 mr-1" />
+                                  <CrownIcon className="w-3 h-3 mr-1" />
                                   Promote
                                 </Button>
                               )}
                               {user.status !== "banned" && (
                                 <Button 
                                   size="sm"
-                                  onClick={() => handleBanUser(user.id, user.username)}
+                                  onClick={() => handleBanUser(user.id)}
                                   variant="outline"
                                   className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
                                 >
@@ -504,28 +573,28 @@ export const UsersManagementPage: React.FC = () => {
         <div className="text-white">Are you sure you want to ban user <b>{banDialog.username}</b>? This action cannot be undone.</div>
         <div className="flex justify-end gap-3 mt-6">
           <Button onClick={() => setBanDialog({ open: false })} variant="outline">Cancel</Button>
-          <Button onClick={confirmBanUser} className="bg-red-600 text-white" disabled={actionLoading}>{actionLoading ? "Banning..." : "Ban"}</Button>
+          <Button onClick={() => handleBanUser(banDialog.userId!)} className="bg-red-600 text-white" disabled={actionLoading}>{actionLoading ? "Banning..." : "Ban"}</Button>
         </div>
       </Modal>
       <Modal open={promoteDialog.open} onClose={() => setPromoteDialog({ open: false })} title="Promote User">
         <div>Are you sure you want to promote user <b>{promoteDialog.username}</b> to admin?</div>
         <div className="flex justify-end gap-3 mt-6">
           <Button onClick={() => setPromoteDialog({ open: false })} variant="outline">Cancel</Button>
-          <Button onClick={confirmPromoteUser} className="bg-purple-600 text-white" disabled={actionLoading}>{actionLoading ? "Promoting..." : "Promote"}</Button>
+          <Button onClick={() => handlePromoteUser(promoteDialog.userId!)} className="bg-purple-600 text-white" disabled={actionLoading}>{actionLoading ? "Promoting..." : "Promote"}</Button>
         </div>
       </Modal>
       <Modal open={bulkBanDialog} onClose={() => setBulkBanDialog(false)} title="Ban Users">
         <div className="text-white">Are you sure you want to ban <b>{selectedUsers.length}</b> user(s)? This action cannot be undone.</div>
         <div className="flex justify-end gap-3 mt-6">
           <Button onClick={() => setBulkBanDialog(false)} variant="outline">Cancel</Button>
-          <Button onClick={confirmBulkBan} className="bg-red-600 text-white" disabled={actionLoading}>{actionLoading ? "Banning..." : "Ban All"}</Button>
+          <Button onClick={handleBulkBan} className="bg-red-600 text-white" disabled={actionLoading}>{actionLoading ? "Banning..." : "Ban All"}</Button>
         </div>
       </Modal>
       <Modal open={unbanDialog.open} onClose={() => setUnbanDialog({ open: false })} title="Unban User">
         <div className="text-white">Are you sure you want to unban user <b>{unbanDialog.username}</b>?</div>
         <div className="flex justify-end gap-3 mt-6">
           <Button onClick={() => setUnbanDialog({ open: false })} variant="outline">Cancel</Button>
-          <Button onClick={confirmUnbanUser} className="bg-green-600 text-white" disabled={actionLoading}>{actionLoading ? "Unbanning..." : "Unban"}</Button>
+          <Button onClick={() => handleUnbanUser(unbanDialog.userId!)} className="bg-green-600 text-white" disabled={actionLoading}>{actionLoading ? "Unbanning..." : "Unban"}</Button>
         </div>
       </Modal>
     </div>

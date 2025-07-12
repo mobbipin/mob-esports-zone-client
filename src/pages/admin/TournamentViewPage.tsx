@@ -4,12 +4,11 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
-import { useToast } from "../../contexts/ToastContext";
+import toast from "react-hot-toast";
 
 export const TournamentViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tournament, setTournament] = useState<any>(null);
@@ -35,10 +34,10 @@ export const TournamentViewPage: React.FC = () => {
     if (!window.confirm("Are you sure you want to delete this tournament? This action cannot be undone.")) return;
     try {
       await apiFetch(`/tournaments/${id}`, { method: "DELETE" });
-      addToast("Tournament deleted", "success");
+      toast.success("Tournament deleted");
       navigate("/admin/tournaments");
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to delete tournament", "error");
+      toast.error(err.message || err?.toString() || "Failed to delete tournament");
     }
   };
 

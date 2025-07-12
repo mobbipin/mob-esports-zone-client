@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import toast from "react-hot-toast";
 
 const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -8,6 +9,8 @@ const NotificationsPage: React.FC = () => {
   useEffect(() => {
     if (lastMessage && lastMessage.type === "notification") {
       setNotifications((n) => [lastMessage.notification, ...n]);
+      // Show toast for new notifications
+      toast.success(lastMessage.notification?.title || "New notification received!");
     }
   }, [lastMessage]);
 

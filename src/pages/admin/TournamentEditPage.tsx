@@ -4,7 +4,7 @@ import { ArrowLeftIcon, SaveIcon, CalendarIcon, UsersIcon, TrophyIcon, ImageIcon
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../contexts/ToastContext";
+import toast from "react-hot-toast";
 import { apiFetch, apiUpload } from "../../lib/api";
 import ReactQuill from "react-quill";
 // @ts-ignore
@@ -16,7 +16,6 @@ import { Skeleton } from "../../components/ui/skeleton";
 
 export const TournamentEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { addToast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -72,9 +71,9 @@ export const TournamentEditPage: React.FC = () => {
       formData.append("banner", file);
       const res = await apiUpload("/upload/tournament-banner", formData);
       setBannerUrl(res.data?.url || "");
-      addToast("Banner uploaded!", "success");
+      toast.success("Banner uploaded!");
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to upload banner", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload banner");
     } finally {
       setBannerUploading(false);
     }
@@ -119,7 +118,7 @@ export const TournamentEditPage: React.FC = () => {
         method: "PUT",
         body: JSON.stringify(updatePayload)
       });
-      addToast("Tournament updated successfully!", "success");
+      toast.success("Tournament updated successfully!");
       navigate("/admin/tournaments");
     } catch (err: any) {
       setError(err.message || err?.toString() || "Failed to update tournament");

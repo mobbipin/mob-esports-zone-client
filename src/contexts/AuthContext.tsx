@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import toast from "react-hot-toast";
 import { apiFetch } from "../lib/api";
 
 export interface User {
   id: string;
   username: string;
   email: string;
-  role: "player" | "admin";
+  role: "player" | "admin" | "tournament_organizer";
   avatar?: string;
   gameUsername?: string;
   region?: string;
@@ -14,6 +15,9 @@ export interface User {
   teamId?: string;
   isPublic?: number;
   banned?: number; // Added banned property
+  emailVerified?: boolean; // Added email verification status
+  isApproved?: boolean; // Added approval status for tournament organizers
+  displayName?: string; // Added displayName for consistency
   playerProfile?: {
     achievements?: string[];
     bio?: string;
@@ -30,8 +34,8 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: Partial<User> & { password: string; adminCode?: string; displayName?: string }) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (userData: Partial<User> & { password: string; adminCode?: string; displayName?: string }) => Promise<any>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   setUserData: (userData: User) => void;
@@ -80,9 +84,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
-      });
+      }, true, true); // Show error toast here
       localStorage.setItem("token", res.data.token);
       setUser(res.data.user);
+      
+      // Show appropriate message based on user role and status
+      if (res.data.user.role === 'tournament_organizer' && !res.data.user.isApproved) {
+        toast.success("Login successful! Your account is pending admin approval. You can browse but cannot create tournaments or posts yet.");
+      } else {
+        toast.success("Login successful!");
+      }
+      
+      // Return user data for navigation logic
+      return res.data.user;
     } catch (error) {
       throw new Error(typeof error === "string" ? error : "Login failed");
     } finally {
@@ -93,12 +107,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: Partial<User> & { password: string; adminCode?: string; displayName?: string }) => {
     setLoading(true);
     try {
-      await apiFetch("/auth/register", {
+      const response = await apiFetch("/auth/register", {
         method: "POST",
         body: JSON.stringify(userData),
-      });
-      // Optionally, auto-login after registration
-      await login(userData.email || "", userData.password);
+      }, true, true); // Show error toast here
+      
+      // Show success message based on role
+      if (userData.role === 'tournament_organizer') {
+        toast.success("Account created successfully! Your account is pending admin approval. You'll be notified when approved.");
+      } else {
+        toast.success("Account created successfully! Please check your email to verify your account.");
+      }
+      
+      // Return the response so the component can handle navigation
+      return response;
     } catch (error) {
       throw new Error(typeof error === "string" ? error : "Registration failed");
     } finally {
@@ -109,6 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem("token");
+    toast.success("Logged out successfully");
   };
 
   const updateUser = async (userData: Partial<User>) => {
@@ -119,10 +142,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await apiFetch(`/players/${user.id}`, {
           method: "PUT",
           body: JSON.stringify(userData),
-        });
+        }, true, false); // Don't show error toast here, let the component handle it
         // Refetch user profile
         const res = await apiFetch<{ status: boolean; data: User }>("/auth/me");
         setUser(res.data);
+        toast.success("Profile updated successfully!");
       } catch (error) {
         throw new Error(typeof error === "string" ? error : "Update failed");
       } finally {

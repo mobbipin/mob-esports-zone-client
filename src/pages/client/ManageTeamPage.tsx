@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../contexts/ToastContext";
+import toast from "react-hot-toast";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
@@ -72,7 +72,6 @@ const PlayerProfileDialog = ({ open, onClose, player }: { open: boolean; onClose
 export const ManageTeamPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, setUserData } = useAuth();
-  const { addToast } = useToast();
   const [team, setTeam] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,9 +155,9 @@ export const ManageTeamPage: React.FC = () => {
       form.append("logo", file);
       const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", form);
       setFormData(prev => ({ ...prev, logoUrl: res.data.url }));
-      addToast("Logo uploaded!", "success");
+      toast.success("Logo uploaded!");
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to upload logo", "error");
+      toast.error(err.message || err?.toString() || "Failed to upload logo");
     } finally {
       setLogoUploading(false);
     }
@@ -174,7 +173,7 @@ export const ManageTeamPage: React.FC = () => {
         method: "PUT",
         body: JSON.stringify(formData)
       });
-      addToast("Team updated!", "success");
+      toast.success("Team updated!");
       setIsEditing(false);
       refreshTeamAndInvites(); // Call refresh after successful update
     } catch (err: any) {
@@ -193,11 +192,11 @@ export const ManageTeamPage: React.FC = () => {
         method: "POST",
         body: JSON.stringify({ userEmail: inviteEmail })
       });
-      addToast("Player invited!", "success");
+      toast.success("Player invited!");
       setInviteEmail("");
       refreshTeamAndInvites(); // Call refresh after successful invite
     } catch (err: any) {
-      addToast(err.message || err?.toString() || "Failed to invite player", "error");
+      toast.error(err.message || err?.toString() || "Failed to invite player");
     } finally {
       setInviteLoading(false);
     }
@@ -314,7 +313,7 @@ export const ManageTeamPage: React.FC = () => {
                   const form = e.target as any;
                   const newOwnerId = form.newOwnerId.value;
                   if (!newOwnerId) {
-                    addToast("Please select a member to transfer ownership.", "error");
+                    toast.error("Please select a member to transfer ownership.");
                     return;
                   }
                   try {
@@ -322,10 +321,10 @@ export const ManageTeamPage: React.FC = () => {
                       method: "POST",
                       body: JSON.stringify({ newOwnerId })
                     });
-                    addToast("Ownership transferred!", "success");
+                    toast.success("Ownership transferred!");
                     refreshTeamAndInvites(); // Call refresh after successful transfer
                   } catch (err: any) {
-                    addToast(err.message || err?.toString() || "Failed to transfer ownership", "error");
+                    toast.error(err.message || err?.toString() || "Failed to transfer ownership");
                   }
                 }}
                 className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4"

@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../contexts/ToastContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
+import { validateRequired, validateEmail } from "../../lib/utils";
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -14,25 +14,35 @@ export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
-  const { addToast } = useToast();
   const navigate = useNavigate();
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string[] }>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
+    
+    // Form validation
+    if (!validateRequired(email, "Email")) return;
+    if (!validateEmail(email)) return;
+    if (!validateRequired(password, "Password")) return;
+    
     setLoading(true);
 
     try {
-      await login(email, password);
-      addToast("Login successful!", "success");
-      navigate("/dashboard");
+      const user = await login(email, password);
+      // Navigate based on user role
+      if (user.role === 'admin') {
+        navigate("/admin");
+      } else if (user.role === 'tournament_organizer') {
+        navigate("/organizer");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       if (error && error.fieldErrors) {
         setFieldErrors(error.fieldErrors);
-      } else {
-        addToast("Login failed. Please check your credentials.", "error");
       }
+      // Error toast is handled by the API utility
     } finally {
       setLoading(false);
     }
@@ -54,10 +64,10 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-[#f34024] rounded-lg flex items-center justify-center overflow-hidden">
+            
               <img src="assets/logo.png" alt="MOB Esports Logo" className="w-9 h-9 object-contain" />
-            </div>
-            <span className="text-white font-bold text-2xl">MOB ESPORTS ZONE</span>
+        
+           
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
           <p className="text-gray-400">Sign in to your account to continue</p>
@@ -129,13 +139,7 @@ export const LoginPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="mt-4 p-4 bg-[#19191d] rounded-lg">
-              <p className="text-xs text-gray-400 mb-2">Demo Accounts:</p>
-              <div className="text-xs text-gray-300 space-y-1">
-                <div>Player: player@demo.com / password</div>
-                <div>Admin: admin@demo.com / password</div>
-              </div>
-            </div>
+            
           </CardContent>
         </Card>
       </div>
