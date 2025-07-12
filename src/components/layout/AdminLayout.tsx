@@ -22,12 +22,25 @@ export const AdminLayout: React.FC = () => {
     { to: "/admin/users", icon: UsersIcon, label: "Users" },
     { to: "/admin/teams", icon: UsersIcon, label: "Teams" },
     { to: "/admin/tournaments", icon: TrophyIcon, label: "Tournaments" },
+    { to: "/admin/tournaments/pending", icon: TrophyIcon, label: "Pending Tournaments" },
     { to: "/admin/posts", icon: NewspaperIcon, label: "Posts" },
+    { to: "/admin/posts/pending", icon: NewspaperIcon, label: "Pending Posts" },
   ];
 
   const isActive = (path: string, exact = false) => {
     if (exact) {
       return location.pathname === path;
+    }
+    // Special handling for pending routes to avoid conflicts
+    if (path.includes('/pending')) {
+      return location.pathname === path;
+    }
+    // For non-pending routes, check if it starts with the path but doesn't continue with /pending
+    if (path === '/admin/tournaments') {
+      return location.pathname.startsWith(path) && !location.pathname.includes('/pending');
+    }
+    if (path === '/admin/posts') {
+      return location.pathname.startsWith(path) && !location.pathname.includes('/pending');
     }
     return location.pathname.startsWith(path);
   };
@@ -80,7 +93,7 @@ export const AdminLayout: React.FC = () => {
         <div className="absolute bottom-4 left-4 right-4">
           <div className="flex items-center space-x-3 px-3 py-2 bg-[#292932] rounded-lg">
             <img
-              src={user?.avatar || "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&dpr=1"}
+              src={typeof user?.avatar === 'string' && user.avatar ? user.avatar : '/assets/logo.png'}
               alt="Profile"
               className="w-8 h-8 rounded-full"
             />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CameraIcon, SaveIcon, UserIcon, GamepadIcon, MapPinIcon, TrophyIcon, UserPlus, MessageCircle } from "lucide-react";
+import { CameraIcon, SaveIcon, UserIcon, GamepadIcon, MapPinIcon, TrophyIcon, UserPlus } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch, apiUpload } from "../../lib/api";
 import { Button } from "../../components/ui/button";
@@ -233,21 +233,31 @@ export const ProfilePage: React.FC = () => {
         method: "PUT",
         body: JSON.stringify({
           email: formData.email,
-          displayName: formData.gameUsername,
+          displayName: user.role === 'player' ? formData.gameUsername : undefined,
           username: formData.username,
         }),
       }, true, false); // Don't show error toast here
       
-      // Update PlayerProfile table
-      await apiFetch(`/players/${user.id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          bio: formData.bio,
-          region: formData.region,
-          rank: formData.rank,
-          gameId: formData.gameUsername,
-        }),
-      }, true, false); // Don't show error toast here
+      // Update PlayerProfile table only for players
+      if (user.role === 'player') {
+        await apiFetch(`/players/${user.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            bio: formData.bio,
+            region: formData.region,
+            rank: formData.rank,
+            gameId: formData.gameUsername,
+          }),
+        }, true, false); // Don't show error toast here
+      } else {
+        // For organizers and admins, only update bio in user table
+        await apiFetch(`/users/${user.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            displayName: formData.bio, // Use displayName for bio for non-players
+          }),
+        }, true, false);
+      }
       
       // Refetch user
       const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
@@ -456,6 +466,40 @@ export const ProfilePage: React.FC = () => {
                         </div>
                       )}
                     </div>
+
+                    {/* Quick Navigation */}
+                    <div className="mt-4 space-y-2">
+                      {user?.role === "player" && (
+                        <Button 
+                          onClick={() => navigate("/dashboard")}
+                          variant="outline"
+                          className="w-full border-[#292932] hover:bg-[#292932] text-white text-sm"
+                        >
+                          <UserIcon className="w-4 h-4 mr-2" />
+                          Go to Dashboard
+                        </Button>
+                      )}
+                      {user?.role === "admin" && (
+                        <Button 
+                          onClick={() => navigate("/admin")}
+                          variant="outline"
+                          className="w-full border-[#292932] hover:bg-[#292932] text-white text-sm"
+                        >
+                          <UserIcon className="w-4 h-4 mr-2" />
+                          Admin Panel
+                        </Button>
+                      )}
+                      {user?.role === "tournament_organizer" && (
+                        <Button 
+                          onClick={() => navigate("/organizer")}
+                          variant="outline"
+                          className="w-full border-[#292932] hover:bg-[#292932] hover:text-white text-sm"
+                        >
+                          <UserIcon className="w-4 h-4 mr-2" />
+                          Organizer Dashboard
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -501,88 +545,96 @@ export const ProfilePage: React.FC = () => {
                       )}
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        <GamepadIcon className="w-4 h-4 inline mr-2" />
-                        Game Username *
-                      </label>
-                      <Input
-                        name="gameUsername"
-                        value={formData.gameUsername}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        disabled={!isEditing}
-                        placeholder="Your in-game name"
-                        className={`bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] ${
-                          fieldErrors.gameUsername && fieldTouched.gameUsername ? 'border-red-500' : ''
-                        }`}
-                      />
-                      {fieldErrors.gameUsername && fieldTouched.gameUsername && (
-                        <p className="text-red-500 text-xs mt-1">{fieldErrors.gameUsername}</p>
-                      )}
-                    </div>
+                    {/* Only show game-specific fields for players */}
+                    {user?.role === 'player' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">
+                            <GamepadIcon className="w-4 h-4 inline mr-2" />
+                            Game Username *
+                          </label>
+                          <Input
+                            name="gameUsername"
+                            value={formData.gameUsername}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            disabled={!isEditing}
+                            placeholder="Your in-game name"
+                            className={`bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] ${
+                              fieldErrors.gameUsername && fieldTouched.gameUsername ? 'border-red-500' : ''
+                            }`}
+                          />
+                          {fieldErrors.gameUsername && fieldTouched.gameUsername && (
+                            <p className="text-red-500 text-xs mt-1">{fieldErrors.gameUsername}</p>
+                          )}
+                        </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        <MapPinIcon className="w-4 h-4 inline mr-2" />
-                        Region
-                      </label>
-                      <select
-                        name="region"
-                        value={formData.region}
-                        onChange={handleChange}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none"
-                      >
-                        <option value="">Select Region</option>
-                        {regions.map(region => (
-                          <option key={region} value={region}>{region}</option>
-                        ))}
-                      </select>
-                    </div>
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">
+                            <MapPinIcon className="w-4 h-4 inline mr-2" />
+                            Region
+                          </label>
+                          <select
+                            name="region"
+                            value={formData.region}
+                            onChange={handleChange}
+                            disabled={!isEditing}
+                            className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none"
+                          >
+                            <option value="">Select Region</option>
+                            {regions.map(region => (
+                              <option key={region} value={region}>{region}</option>
+                            ))}
+                          </select>
+                        </div>
 
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-white mb-2">
-                        <TrophyIcon className="w-4 h-4 inline mr-2" />
-                        Current Rank
-                      </label>
-                      <select
-                        name="rank"
-                        value={formData.rank}
-                        onChange={handleChange}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none"
-                      >
-                        <option value="">Select Rank</option>
-                        {ranks.map(rank => (
-                          <option key={rank} value={rank}>{rank}</option>
-                        ))}
-                      </select>
-                    </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-white mb-2">
+                            <TrophyIcon className="w-4 h-4 inline mr-2" />
+                            Current Rank
+                          </label>
+                          <select
+                            name="rank"
+                            value={formData.rank}
+                            onChange={handleChange}
+                            disabled={!isEditing}
+                            className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none"
+                          >
+                            <option value="">Select Rank</option>
+                            {ranks.map(rank => (
+                              <option key={rank} value={rank}>{rank}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    )}
 
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-white mb-2">
-                        Bio
-                      </label>
-                      <textarea
-                        name="bio"
-                        value={formData.bio}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        disabled={!isEditing}
-                        rows={4}
-                        placeholder="Tell us about yourself..."
-                        className={`w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none ${
-                          fieldErrors.bio && fieldTouched.bio ? 'border-red-500' : ''
-                        }`}
-                      />
-                      {fieldErrors.bio && fieldTouched.bio && (
-                        <p className="text-red-500 text-xs mt-1">{fieldErrors.bio}</p>
-                      )}
-                      <p className="text-gray-500 text-xs mt-1">
-                        {formData.bio.length}/500 characters
-                      </p>
-                    </div>
+                    {/* Only show bio for players */}
+                    {user?.role === 'player' && (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-white mb-2">
+                          Bio
+                        </label>
+                        <textarea
+                          name="bio"
+                          value={formData.bio}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          disabled={!isEditing}
+                          rows={4}
+                          placeholder="Tell us about yourself..."
+                          className={`w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none resize-none ${
+                            fieldErrors.bio && fieldTouched.bio ? 'border-red-500' : ''
+                          }`}
+                        />
+                        {fieldErrors.bio && fieldTouched.bio && (
+                          <p className="text-red-500 text-xs mt-1">{fieldErrors.bio}</p>
+                        )}
+                        <p className="text-gray-500 text-xs mt-1">
+                          {formData.bio.length}/500 characters
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </form>
               </CardContent>
@@ -591,62 +643,100 @@ export const ProfilePage: React.FC = () => {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* Achievements */}
-            <Card className="bg-[#15151a] border-[#292932]">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Achievements</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {achievements.map((achievement) => (
-                    <div 
-                      key={achievement.id} 
-                      className={`p-3 rounded-lg text-center ${
-                        achievement.earned 
-                          ? "bg-[#f34024]/20 border border-[#f34024]/30" 
-                          : "bg-[#19191d] border border-[#292932]"
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{achievement.icon}</div>
-                      <div className={`text-xs font-medium ${
-                        achievement.earned ? "text-white" : "text-gray-500"
-                      }`}>
-                        {achievement.title}
+            {/* Only show achievements and tournament history for players */}
+            {user?.role === 'player' && (
+              <>
+                {/* Achievements */}
+                <Card className="bg-[#15151a] border-[#292932]">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-bold text-white mb-4">Achievements</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {achievements.map((achievement) => (
+                        <div 
+                          key={achievement.id} 
+                          className={`p-3 rounded-lg text-center ${
+                            achievement.earned 
+                              ? "bg-[#f34024]/20 border border-[#f34024]/30" 
+                              : "bg-[#19191d] border border-[#292932]"
+                          }`}
+                        >
+                          <div className="text-2xl mb-1">{achievement.icon}</div>
+                          <div className={`text-xs font-medium ${
+                            achievement.earned ? "text-white" : "text-gray-500"
+                          }`}>
+                            {achievement.title}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Tournament History */}
+                <Card className="bg-[#15151a] border-[#292932]">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-bold text-white mb-4">Recent Tournaments</h3>
+                    <div className="space-y-3">
+                      {tournamentHistory.slice(0, 5).map((tournament) => (
+                        <div key={tournament.id} className="p-3 bg-[#19191d] rounded-lg">
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="text-white text-sm font-medium">{tournament.name}</div>
+                            <div className={`text-xs px-2 py-1 rounded ${
+                              tournament.position === "1st" ? "bg-yellow-600 text-white" :
+                              tournament.position === "2nd" ? "bg-gray-400 text-white" :
+                              tournament.position === "3rd" ? "bg-orange-600 text-white" :
+                              "bg-[#292932] text-gray-300"
+                            }`}>
+                              {tournament.position}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="text-gray-400 text-xs">{tournament.date}</div>
+                            <div className="text-[#f34024] text-xs font-bold">{tournament.prize}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button variant="outline" className="w-full mt-4 border-[#292932] hover:text-white hover:bg-[#292932]">
+                      View All History
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {/* Role-specific info for organizers and admins */}
+            {user?.role !== 'player' && (
+              <Card className="bg-[#15151a] border-[#292932]">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-bold text-white mb-4">
+                    {user?.role === 'tournament_organizer' ? 'Organizer Info' : 'Admin Info'}
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-[#19191d] rounded-lg">
+                      <div className="text-white text-sm font-medium mb-1">Role</div>
+                      <div className="text-gray-400 text-xs capitalize">
+                        {user?.role === 'tournament_organizer' ? 'Tournament Organizer' : 'Administrator'}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tournament History */}
-            <Card className="bg-[#15151a] border-[#292932]">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Recent Tournaments</h3>
-                <div className="space-y-3">
-                  {tournamentHistory.slice(0, 5).map((tournament) => (
-                    <div key={tournament.id} className="p-3 bg-[#19191d] rounded-lg">
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="text-white text-sm font-medium">{tournament.name}</div>
-                        <div className={`text-xs px-2 py-1 rounded ${
-                          tournament.position === "1st" ? "bg-yellow-600 text-white" :
-                          tournament.position === "2nd" ? "bg-gray-400 text-white" :
-                          tournament.position === "3rd" ? "bg-orange-600 text-white" :
-                          "bg-[#292932] text-gray-300"
-                        }`}>
-                          {tournament.position}
+                    <div className="p-3 bg-[#19191d] rounded-lg">
+                      <div className="text-white text-sm font-medium mb-1">Account Status</div>
+                      <div className="text-green-400 text-xs">
+                        {user?.emailVerified ? 'Email Verified' : 'Email Not Verified'}
+                      </div>
+                    </div>
+                    {user?.role === 'tournament_organizer' && (
+                      <div className="p-3 bg-[#19191d] rounded-lg">
+                        <div className="text-white text-sm font-medium mb-1">Approval Status</div>
+                        <div className={`text-xs ${user?.isApproved ? 'text-green-400' : 'text-yellow-400'}`}>
+                          {user?.isApproved ? 'Approved' : 'Pending Approval'}
                         </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <div className="text-gray-400 text-xs">{tournament.date}</div>
-                        <div className="text-[#f34024] text-xs font-bold">{tournament.prize}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Button variant="outline" className="w-full mt-4 border-[#292932] hover:text-white hover:bg-[#292932]">
-                  View All History
-                </Button>
-              </CardContent>
-            </Card>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

@@ -43,6 +43,7 @@ export const UsersManagementPage: React.FC = () => {
   const [unbanDialog, setUnbanDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
   const [pendingOrganizers, setPendingOrganizers] = useState<any[]>([]);
   const [organizersLoading, setOrganizersLoading] = useState(false);
+  const [unapproveDialog, setUnapproveDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -202,6 +203,24 @@ export const UsersManagementPage: React.FC = () => {
     }
   };
 
+  const handleUnapproveOrganizer = async (userId: string) => {
+    setActionLoading(true);
+    try {
+      await apiFetch('/auth/unapprove-organizer', {
+        method: 'POST',
+        body: JSON.stringify({ organizerId: userId })
+      }, true, false);
+      toast.success("Tournament organizer unapproved successfully");
+      fetchPendingOrganizers();
+      fetchUsers(); // Refresh users list as well
+    } catch (err: any) {
+      toast.error(err.message || "Failed to unapprove organizer");
+    } finally {
+      setActionLoading(false);
+      setUnapproveDialog({ open: false });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -332,6 +351,7 @@ export const UsersManagementPage: React.FC = () => {
               <option value="all">All Roles</option>
               <option value="player">Players</option>
               <option value="admin">Admins</option>
+              <option value="tournament_organizer">Tournament Organizers</option>
             </select>
             
             <select
@@ -425,10 +445,22 @@ export const UsersManagementPage: React.FC = () => {
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          (user.role || "player") === "admin" ? "bg-purple-600 text-white" : "bg-blue-600 text-white"
+                          (user.role || "player") === "admin" ? "bg-purple-600 text-white" : 
+                          (user.role || "player") === "tournament_organizer" ? "bg-orange-600 text-white" :
+                          "bg-blue-600 text-white"
                         }`}>
-                          {(user.role || "player").charAt(0).toUpperCase() + (user.role || "player").slice(1)}
+                          {(user.role || "player") === "tournament_organizer" ? "Tournament Organizer" : 
+                           (user.role || "player").charAt(0).toUpperCase() + (user.role || "player").slice(1)}
                         </span>
+                        {user.role === "tournament_organizer" && (
+                          <div className="mt-1">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              user.isApproved ? "bg-green-600 text-white" : "bg-yellow-600 text-white"
+                            }`}>
+                              {user.isApproved ? "Approved" : "Pending Approval"}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center">
@@ -463,6 +495,15 @@ export const UsersManagementPage: React.FC = () => {
                           >
                             View
                           </Button>
+                          {user.role === "tournament_organizer" && user.isApproved && (
+                            <Button
+                              size="sm"
+                              onClick={() => setUnapproveDialog({ open: true, userId: user.id, username: user.username })}
+                              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                            >
+                              Unapprove
+                            </Button>
+                          )}
                           {user.status === "banned" ? (
                             <Button
                               size="sm"
@@ -595,6 +636,13 @@ export const UsersManagementPage: React.FC = () => {
         <div className="flex justify-end gap-3 mt-6">
           <Button onClick={() => setUnbanDialog({ open: false })} variant="outline">Cancel</Button>
           <Button onClick={() => handleUnbanUser(unbanDialog.userId!)} className="bg-green-600 text-white" disabled={actionLoading}>{actionLoading ? "Unbanning..." : "Unban"}</Button>
+        </div>
+      </Modal>
+      <Modal open={unapproveDialog.open} onClose={() => setUnapproveDialog({ open: false })} title="Unapprove Organizer">
+        <div className="text-white">Are you sure you want to unapprove tournament organizer <b>{unapproveDialog.username}</b>? They will need to reapply for approval.</div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button onClick={() => setUnapproveDialog({ open: false })} variant="outline">Cancel</Button>
+          <Button onClick={() => handleUnapproveOrganizer(unapproveDialog.userId!)} className="bg-yellow-600 text-white" disabled={actionLoading}>{actionLoading ? "Unapproving..." : "Unapprove"}</Button>
         </div>
       </Modal>
     </div>

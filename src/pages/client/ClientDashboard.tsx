@@ -8,6 +8,9 @@ import { apiFetch } from "../../lib/api";
 import toast from "react-hot-toast";
 import { Skeleton } from "../../components/ui/skeleton";
 
+// Import CreateTeamDialog
+import { CreateTeamDialog } from "./CreateTeamDialog";
+
 export const ClientDashboard: React.FC = () => {
   const { user, setUserData } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -17,6 +20,7 @@ export const ClientDashboard: React.FC = () => {
   const [registeredTournaments, setRegisteredTournaments] = useState<any[]>([]);
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
+  const [showCreateTeamDialog, setShowCreateTeamDialog] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -88,6 +92,15 @@ export const ClientDashboard: React.FC = () => {
       const errorMessage = err?.error || err?.message || err?.toString() || "Failed to withdraw from tournament";
       toast.error(errorMessage);
     }
+  };
+
+  // Handle create team button click
+  const handleCreateTeamClick = () => {
+    if (!user?.emailVerified) {
+      toast.error("Please verify your email before creating a team.");
+      return;
+    }
+    setShowCreateTeamDialog(true);
   };
 
   if (loading) return (
@@ -184,15 +197,18 @@ export const ClientDashboard: React.FC = () => {
                             <span className={`px-2 py-1 rounded text-xs font-medium bg-blue-600 text-white`}>
                               {tournament.status}
                             </span>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="border-red-500 text-red-400 hover:bg-red-600 hover:text-white"
-                              onClick={() => handleWithdrawFromTournament(tournament.id)}
-                            >
-                              <LogOutIcon className="w-3 h-3 mr-1" />
-                              Withdraw
-                            </Button>
+                            {/* Only show Withdraw if user is registered */}
+                            {tournament.isRegistered && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-red-500 text-red-400 hover:bg-red-600 hover:text-white"
+                                onClick={() => handleWithdrawFromTournament(tournament.id)}
+                              >
+                                <LogOutIcon className="w-3 h-3 mr-1" />
+                                Withdraw
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -246,12 +262,15 @@ export const ClientDashboard: React.FC = () => {
                       Browse Tournaments
                     </Button>
                   </Link>
-                  <Link to={team ? "/dashboard/manage-team" : "/dashboard/create-team"}>
-                    <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start">
-                      <UsersIcon className="w-4 h-4 mr-2" />
-                      {team ? "Manage Team" : "Create Team"}
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start"
+                    onClick={handleCreateTeamClick}
+                    disabled={!!team}
+                  >
+                    <UsersIcon className="w-4 h-4 mr-2" />
+                    {team ? "Manage Team" : "Create Team"}
+                  </Button>
                   <Link to="/dashboard/profile">
                     <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start">
                       <StarIcon className="w-4 h-4 mr-2" />
@@ -261,6 +280,9 @@ export const ClientDashboard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Create Team Dialog */}
+            <CreateTeamDialog open={showCreateTeamDialog} onClose={() => setShowCreateTeamDialog(false)} onTeamCreated={() => setShowCreateTeamDialog(false)} />
 
             {/* Pending Invites */}
             <Card className="bg-[#15151a] border-[#292932]">

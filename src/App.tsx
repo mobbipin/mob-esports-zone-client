@@ -39,8 +39,14 @@ import { TournamentViewPage } from "./pages/admin/TournamentViewPage";
 import { PostViewPage } from "./pages/admin/PostViewPage";
 import { AdminTeamViewPage } from "./pages/admin/AdminTeamViewPage";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { AdminPendingTournamentsPage } from "./pages/admin/AdminPendingTournamentsPage";
+import { AdminPendingPostsPage } from "./pages/admin/AdminPendingPostsPage";
 import { TestEmailPage } from "./pages/TestEmailPage";
 import { OrganizerDashboard } from "./pages/organizer/OrganizerDashboard";
+import { OrganizerTournamentCreationPage } from "./pages/organizer/TournamentCreationPage";
+import { OrganizerTournamentsListPage } from "./pages/organizer/TournamentsListPage";
+import { OrganizerPostCreationPage } from "./pages/organizer/PostCreationPage";
+import { OrganizerPostsListPage } from "./pages/organizer/PostsListPage";
 
 export const App = (): JSX.Element => {
   const { user, loading } = useAuth();
@@ -74,8 +80,8 @@ export const App = (): JSX.Element => {
       <Route path="/test-email" element={<TestEmailPage />} />
       
 
-      {/* Client Routes */}
-      {user && user.role !== 'admin' && (
+      {/* Client Routes (Players Only) */}
+      {user && user.role === 'player' && (
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <Layout />
@@ -117,6 +123,11 @@ export const App = (): JSX.Element => {
           </ProtectedRoute>
         }>
           <Route index element={<OrganizerDashboard />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="tournaments" element={<OrganizerTournamentsListPage />} />
+          <Route path="tournaments/create" element={<OrganizerTournamentCreationPage />} />
+          <Route path="posts" element={<OrganizerPostsListPage />} />
+          <Route path="posts/create" element={<OrganizerPostCreationPage />} />
         </Route>
       )}
 
@@ -139,6 +150,8 @@ export const App = (): JSX.Element => {
           <Route path="posts/:id/edit" element={<PostEditPage />} />
           <Route path="posts/:id/view" element={<PostViewPage />} />
           <Route path="teams/:id/view" element={<AdminTeamViewPage />} />
+          <Route path="tournaments/pending" element={<AdminPendingTournamentsPage />} />
+          <Route path="posts/pending" element={<AdminPendingPostsPage />} />
         </Route>
       )}
 

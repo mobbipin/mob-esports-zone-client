@@ -387,7 +387,13 @@ export const TournamentDetailPage: React.FC = () => {
                       <div className="space-y-3">
                         <div className="text-gray-400 text-sm">You must be part of a team to register for this tournament.</div>
                         <Button 
-                          onClick={() => navigate('/dashboard/create-team')}
+                          onClick={() => {
+                            if (!user?.emailVerified) {
+                              toast.error('Please verify your email before creating a team.');
+                              return;
+                            }
+                            navigate('/dashboard/create-team');
+                          }}
                           className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white"
                         >
                           Create/Join Team
@@ -419,11 +425,7 @@ export const TournamentDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white">
-                    Join Discord
-                  </Button>
-                </div>
+                
               </CardContent>
             </Card>
 

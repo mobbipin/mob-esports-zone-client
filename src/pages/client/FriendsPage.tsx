@@ -17,6 +17,7 @@ const FriendsPage: React.FC = () => {
   const [privacy, setPrivacy] = useState(user?.isPublic ?? 1);
   const [loading, setLoading] = useState(false);
   const [requestSent, setRequestSent] = useState<string[]>([]);
+  const [requestPending, setRequestPending] = useState<{ [id: string]: string }>({}); // receiverId: requestId
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,33 +42,50 @@ const FriendsPage: React.FC = () => {
   };
   const fetchPending = async () => {
     try {
-      // Pending requests: status !== 'accepted' and user is recipient
-      // We'll filter after fetching all
       const res = await apiFetch<any>("/friends");
       setPending((res.data || []).filter((f: any) => f.status !== "accepted" && f.friendId === user?.id));
+      // Track outgoing requests
+      const outgoing = (res.data || []).filter((f: any) => f.status !== "accepted" && f.userId === user?.id);
+      const pendingMap: { [id: string]: string } = {};
+      outgoing.forEach((req: any) => {
+        pendingMap[req.friendId] = req.id;
+      });
+      setRequestPending(pendingMap);
     } catch {
       setPending([]);
+      setRequestPending({});
     }
   };
   const handleSearch = async () => {
     if (!search) return;
     try {
-      // Use /players?search=... to find users
       const res = await apiFetch<any>(`/players?search=${encodeURIComponent(search)}`);
       setSearchResults(res.data || []);
     } catch {
       setSearchResults([]);
     }
   };
-  const sendRequest = async (friendId: string) => {
+  const sendRequest = async (receiverId: string) => {
     try {
-      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ friendId }) });
+      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ receiverId, senderName: user?.username }) });
       toast.success("Friend request sent");
-      setRequestSent((prev) => [...prev, friendId]);
-      setSearchResults((results) => results.filter((u) => u.id !== friendId));
+      setRequestSent((prev) => [...prev, receiverId]);
+      setSearchResults((results) => results.filter((u) => u.id !== receiverId));
       fetchPending();
     } catch (err: any) {
       toast.error(err.message || "Failed to send request");
+    }
+  };
+  const cancelRequest = async (receiverId: string) => {
+    try {
+      const requestId = requestPending[receiverId];
+      if (!requestId) return;
+      await apiFetch(`/friends/${requestId}/cancel`, { method: "POST" });
+      toast.success("Friend request cancelled");
+      setRequestSent((prev) => prev.filter((id) => id !== receiverId));
+      fetchPending();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel request");
     }
   };
   const acceptRequest = async (id: string) => {
@@ -167,7 +185,7 @@ const FriendsPage: React.FC = () => {
                     <div key={u.id} className="flex items-center justify-between bg-[#19191d] p-4 rounded-lg border border-[#292932]">
                       <div className="flex items-center gap-3">
                         <img 
-                          src={u.playerProfile?.avatar || u.avatar || "https://via.placeholder.com/40x40?text=U"} 
+                          src={u.avatar || "/assets/logo.png"} 
                           alt={u.username} 
                           className="w-10 h-10 rounded-full object-cover"
                         />
@@ -176,24 +194,35 @@ const FriendsPage: React.FC = () => {
                           <div className="text-gray-400 text-sm">@{u.username}</div>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => sendRequest(u.id)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                        disabled={requestSent.includes(u.id)}
-                      >
-                        {requestSent.includes(u.id) ? (
-                          <>
-                            <Check className="w-4 h-4 mr-1" />
-                            Requested
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="w-4 h-4 mr-1" />
-                            Add Friend
-                          </>
-                        )}
-                      </Button>
+                      {requestPending[u.id] ? (
+                        <Button
+                          size="sm"
+                          onClick={() => cancelRequest(u.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Cancel Request
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => sendRequest(u.id)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          disabled={requestSent.includes(u.id)}
+                        >
+                          {requestSent.includes(u.id) ? (
+                            <>
+                              <Check className="w-4 h-4 mr-1" />
+                              Requested
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="w-4 h-4 mr-1" />
+                              Add Friend
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -240,7 +269,7 @@ const FriendsPage: React.FC = () => {
                   {friends.map((f: any) => (
                     <div key={f.id} className="flex items-center gap-3 bg-[#19191d] p-4 rounded-lg border border-[#292932]">
                       <img 
-                        src={f.avatar || "https://via.placeholder.com/40x40?text=F"} 
+                        src={f.avatar || "/assets/logo.png"} 
                         alt={f.username} 
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -276,7 +305,7 @@ const FriendsPage: React.FC = () => {
                     <div key={f.id} className="flex items-center justify-between bg-[#19191d] p-4 rounded-lg border border-[#292932]">
                       <div className="flex items-center gap-3">
                         <img 
-                          src={f.avatar || "https://via.placeholder.com/40x40?text=P"} 
+                          src={f.avatar || "/assets/logo.png"} 
                           alt={f.username} 
                           className="w-10 h-10 rounded-full object-cover"
                         />

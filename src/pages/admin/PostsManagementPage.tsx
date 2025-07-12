@@ -3,12 +3,9 @@ import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, EyeIcon, Calenda
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
+import { PostDialog } from "../../components/ui/PostDialog";
 import { apiFetch, apiUpload } from "../../lib/api";
 import toast from "react-hot-toast";
-// @ts-ignore
-import ReactQuill from "react-quill";
-// @ts-ignore
-import "react-quill/dist/quill.snow.css";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "../../components/ui/skeleton";
 
@@ -31,7 +28,9 @@ const DeleteDialog = ({ open, onConfirm, onCancel, message }: { open: boolean, o
 export const PostsManagementPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingPost, setEditingPost] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,8 +38,6 @@ export const PostsManagementPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 9;
-  const [imageUploading, setImageUploading] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, postId?: string, postTitle?: string }>({ open: false });
 
@@ -115,44 +112,57 @@ export const PostsManagementPage: React.FC = () => {
     }
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreatePost = async (data: any) => {
     try {
-      const payload = {
-        title: formData.title,
-        content: formData.content,
-        imageUrl: formData.imageUrl || imageUrl || ""
-      };
       await apiFetch("/posts", {
         method: "POST",
-        body: JSON.stringify(payload)
+        body: JSON.stringify(data)
       });
       toast.success("Post created successfully!");
-      setShowCreateModal(false);
-      setFormData({ title: "", content: "", tags: "", status: "draft", imageUrl: "" });
+      setShowCreateDialog(false);
       fetchPosts();
     } catch (err: any) {
       toast.error(err.message || err?.toString() || "Failed to create post");
     }
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageUploading(true);
+  const handleEditPost = async (data: any) => {
+    if (!editingPost) return;
+    
     try {
-      const formDataUpload = new FormData();
-      formDataUpload.append("file", file);
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formDataUpload);
-      setImageUrl(res.data.url);
-      setFormData(prev => ({ ...prev, imageUrl: res.data.url }));
-      toast.success("Image uploaded!");
+      await apiFetch(`/posts/${editingPost.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      });
+      toast.success("Post updated successfully!");
+      setShowCreateDialog(false);
+      setEditingPost(null);
+      setIsEditing(false);
+      fetchPosts();
     } catch (err: any) {
-      toast.error(err.message || err?.toString() || "Failed to upload image");
-    } finally {
-      setImageUploading(false);
+      toast.error(err.message || err?.toString() || "Failed to update post");
     }
   };
+
+  const openEditDialog = (post: any) => {
+    setEditingPost(post);
+    setIsEditing(true);
+    setShowCreateDialog(true);
+  };
+
+  const openCreateDialog = () => {
+    setEditingPost(null);
+    setIsEditing(false);
+    setShowCreateDialog(true);
+  };
+
+  const closeDialog = () => {
+    setShowCreateDialog(false);
+    setEditingPost(null);
+    setIsEditing(false);
+  };
+
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -174,30 +184,7 @@ export const PostsManagementPage: React.FC = () => {
     { label: "Total Views", value: posts.reduce((sum, p) => sum + p.views, 0).toLocaleString(), color: "text-[#f34024]" }
   ];
 
-  const [editFormData, setEditFormData] = useState({
-    title: "",
-    content: "",
-    tags: "",
-    status: "draft",
-    imageUrl: ""
-  });
 
-  const handleEditImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageUploading(true);
-    try {
-      const formDataUpload = new FormData();
-      formDataUpload.append("file", file);
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formDataUpload);
-      setEditFormData(prev => ({ ...prev, imageUrl: res.data.url }));
-      toast.success("Image uploaded!");
-    } catch (err: any) {
-      toast.error(err.message || err?.toString() || "Failed to upload image");
-    } finally {
-      setImageUploading(false);
-    }
-  };
 
   if (loading && !error) return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
@@ -219,7 +206,7 @@ export const PostsManagementPage: React.FC = () => {
           <p className="text-gray-400">Create and manage news articles and announcements</p>
         </div>
         <Button 
-          onClick={() => setShowCreateModal(true)}
+          onClick={openCreateDialog}
           className="bg-[#f34024] hover:bg-[#f34024]/90 text-white"
         >
           <PlusIcon className="w-4 h-4 mr-2" />
@@ -373,7 +360,7 @@ export const PostsManagementPage: React.FC = () => {
                     size="sm"
                     variant="outline"
                     className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
-                    onClick={() => navigate(`/admin/posts/${post.id}/edit`)}
+                    onClick={() => openEditDialog(post)}
                   >
                     <EditIcon className="w-3 h-3 mr-1" />
                     Edit
@@ -398,7 +385,7 @@ export const PostsManagementPage: React.FC = () => {
           <div className="text-gray-400 text-lg mb-4">No posts found</div>
           <p className="text-gray-500 mb-6">Try adjusting your search terms or create a new post</p>
           <Button 
-            onClick={() => setShowCreateModal(true)}
+            onClick={openCreateDialog}
             className="bg-[#f34024] hover:bg-[#f34024]/90 text-white"
           >
             <PlusIcon className="w-4 h-4 mr-2" />
@@ -407,96 +394,14 @@ export const PostsManagementPage: React.FC = () => {
         </div>
       )}
 
-      {/* Create Post Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-[#15151a] border-[#292932] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardContent className="p-6">
-              <h3 className="text-xl font-bold text-white mb-6">Create New Post</h3>
-              <form onSubmit={handleCreatePost} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Title *</label>
-                  <Input
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter post title"
-                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Content *</label>
-                  <div className="bg-[#19191d] border border-[#292932] rounded-md">
-                    {/* @ts-ignore */}
-                    <ReactQuill
-                      theme="snow"
-                      value={formData.content}
-                      onChange={(val: string) => setFormData(prev => ({ ...prev, content: val }))}
-                      modules={{
-                        toolbar: [
-                          [{ 'header': [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                          [{ 'color': [] }, { 'background': [] }],
-                          [{ 'align': [] }],
-                          ['link', 'image'],
-                          ['clean']
-                        ]
-                      }}
-                      className="text-white min-h-[200px]"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Tags</label>
-                  <Input
-                    value={formData.tags}
-                    onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                    placeholder="Enter tags separated by commas"
-                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-3 py-2 bg-[#19191d] border border-[#292932] text-white rounded-md focus:border-[#f34024] focus:outline-none"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Publish Now</option>
-                    <option value="scheduled">Schedule for Later</option>
-                  </select>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-white mb-2">Image</label>
-                  <input type="file" accept="image/*" onChange={handleImageChange} disabled={imageUploading} />
-                  {imageUploading && <p className="text-yellow-500 text-xs mt-2">Uploading...</p>}
-                  {imageUrl && <img src={imageUrl} alt="Preview" className="mt-2 rounded-lg max-h-32" />}
-                </div>
-                
-                <div className="flex space-x-3 pt-4">
-                  <Button type="submit" className="flex-1 bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-                    Create Post
-                  </Button>
-                  <Button 
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    variant="outline"
-                    className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Post Dialog */}
+      <PostDialog
+        open={showCreateDialog}
+        onClose={closeDialog}
+        onSubmit={isEditing ? handleEditPost : handleCreatePost}
+        post={editingPost}
+        isEditing={isEditing}
+      />
 
       {/* Pagination */}
       <div className="flex items-center justify-between">

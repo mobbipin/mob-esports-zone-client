@@ -82,7 +82,7 @@ export const TournamentCreationPage: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("banner", file);
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/banner", formData, false); // Don't show error toast here
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/tournament-banner", formData, false); // Don't show error toast here
       setBannerUrl(res.data.url);
       setFormData(prev => ({ ...prev, bannerImage: res.data.url }));
       toast.success("Banner uploaded!");
@@ -133,11 +133,16 @@ export const TournamentCreationPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       const payload = {
-        ...formData,
-        maxParticipants: parseInt(formData.maxParticipants),
+        name: formData.title,
+        description: formData.description,
+        game: formData.game,
+        type: formData.type,
+        maxTeams: parseInt(formData.maxParticipants),
+        prizePool: parseFloat(formData.prize),
         startDate: formData.startDate?.toISOString(),
         endDate: formData.endDate?.toISOString(),
-        registrationDeadline: formData.registrationDeadline?.toISOString(),
+        rules: formData.rules || undefined,
+        imageUrl: bannerUrl || undefined
       };
       
       await apiFetch("/tournaments", {
@@ -166,14 +171,12 @@ export const TournamentCreationPage: React.FC = () => {
         game: formData.game,
         type: formData.type,
         maxTeams: parseInt(formData.maxParticipants),
-        prizePool: Number(formData.prize.replace(/[$,]/g, "")),
+        prizePool: parseFloat(formData.prize),
         startDate: toFullISOString(formData.startDate),
         endDate: toFullISOString(formData.endDate),
-        registrationDeadline: toFullISOString(formData.registrationDeadline),
-        rules: formData.rules,
-        bannerUrl: bannerUrl || undefined,
-        status: "draft",
-        date: toFullISOString(formData.startDate) || ""
+        rules: formData.rules || undefined,
+        imageUrl: bannerUrl || undefined,
+        status: "upcoming"
       };
       await apiFetch("/tournaments", {
         method: "POST",

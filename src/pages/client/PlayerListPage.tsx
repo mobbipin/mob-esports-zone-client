@@ -143,12 +143,12 @@ const PlayerListPage: React.FC = () => {
     }
   };
 
-  const sendFriendRequest = async (friendId: string) => {
+  const sendFriendRequest = async (receiverId: string) => {
     if (!user) return;
     try {
-      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ friendId }) });
+      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ receiverId }) });
       toast.success("Friend request sent");
-      setFriendRequests((prev) => [...prev, { friendId, userId: user.id, status: 'pending' }]);
+      setFriendRequests((prev) => [...prev, { receiverId, userId: user.id, status: 'pending' }]);
     } catch (err: any) {
       toast.error(err.message || "Failed to send request");
     }

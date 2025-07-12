@@ -4,6 +4,7 @@ import { PlusIcon, SearchIcon, FilterIcon, CalendarIcon, UsersIcon, TrophyIcon, 
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
+import { TournamentDialog } from "../../components/ui/TournamentDialog";
 import { apiFetch } from "../../lib/api";
 import toast from "react-hot-toast";
 import { Skeleton } from "../../components/ui/skeleton";
@@ -38,6 +39,9 @@ export const AdminTournamentsPage: React.FC = () => {
   const limit = 9;
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, tournamentId?: string, tournamentName?: string }>({ open: false });
   const [deleting, setDeleting] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingTournament, setEditingTournament] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const fetchTournaments = async () => {
     setLoading(true);
@@ -89,6 +93,56 @@ export const AdminTournamentsPage: React.FC = () => {
     }
   };
 
+  const handleCreateTournament = async (data: any) => {
+    try {
+      await apiFetch('/tournaments', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      toast.success('Tournament created successfully!');
+      setShowDialog(false);
+      fetchTournaments();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create tournament');
+    }
+  };
+
+  const handleEditTournament = async (data: any) => {
+    if (!editingTournament) return;
+    
+    try {
+      await apiFetch(`/tournaments/${editingTournament.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+      toast.success('Tournament updated successfully!');
+      setShowDialog(false);
+      setEditingTournament(null);
+      setIsEditing(false);
+      fetchTournaments();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update tournament');
+    }
+  };
+
+  const openEditDialog = (tournament: any) => {
+    setEditingTournament(tournament);
+    setIsEditing(true);
+    setShowDialog(true);
+  };
+
+  const openCreateDialog = () => {
+    setEditingTournament(null);
+    setIsEditing(false);
+    setShowDialog(true);
+  };
+
+  const closeDialog = () => {
+    setShowDialog(false);
+    setEditingTournament(null);
+    setIsEditing(false);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case "registration open":
@@ -136,12 +190,13 @@ export const AdminTournamentsPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-white mb-2">Tournament Management</h1>
           <p className="text-gray-400">Create and manage esports tournaments</p>
         </div>
-        <Link to="/admin/tournaments/create">
-          <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Create Tournament
-          </Button>
-        </Link>
+        <Button 
+          onClick={openCreateDialog}
+          className="bg-[#f34024] hover:bg-[#f34024]/90 text-white"
+        >
+          <PlusIcon className="w-4 h-4 mr-2" />
+          Create Tournament
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -288,7 +343,7 @@ export const AdminTournamentsPage: React.FC = () => {
                     size="sm"
                     variant="outline"
                     className="flex-1 border-[#292932] hover:text-white hover:bg-[#292932]"
-                    onClick={() => navigate(`/admin/tournaments/${tournament.id}/edit`)}
+                    onClick={() => openEditDialog(tournament)}
                   >
                     <EditIcon className="w-3 h-3 mr-1" />
                     Edit
@@ -350,6 +405,14 @@ export const AdminTournamentsPage: React.FC = () => {
         onCancel={() => setDeleteDialog({ open: false })}
         message={`Are you sure you want to delete tournament "${deleteDialog.tournamentName}"? This action cannot be undone.`}
         loading={deleting}
+      />
+      {/* Tournament Dialog */}
+      <TournamentDialog
+        open={showDialog}
+        onClose={closeDialog}
+        onSubmit={isEditing ? handleEditTournament : handleCreateTournament}
+        tournament={editingTournament}
+        isEditing={isEditing}
       />
     </div>
   );
