@@ -8,12 +8,14 @@ interface AccountRestoreDialogProps {
   email: string;
   onClose: () => void;
   onRestoreSuccess: () => void;
+  visible?: boolean;
 }
 
 export const AccountRestoreDialog: React.FC<AccountRestoreDialogProps> = ({
   email,
   onClose,
-  onRestoreSuccess
+  onRestoreSuccess,
+  visible = true
 }) => {
   const [step, setStep] = useState<'confirm' | 'otp'>('confirm');
   const [otp, setOtp] = useState('');
@@ -58,7 +60,7 @@ export const AccountRestoreDialog: React.FC<AccountRestoreDialogProps> = ({
     }
   };
 
-  return (
+  return visible ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
       <div className="bg-[#19191d] p-8 rounded-xl shadow-2xl w-full max-w-md border border-[#292932]">
         <div className="flex items-center justify-between mb-4">
@@ -71,12 +73,12 @@ export const AccountRestoreDialog: React.FC<AccountRestoreDialogProps> = ({
             <p className="mb-4">Your account has been deleted. Would you like to restore it?</p>
             <p className="text-sm text-gray-400 mb-4">We'll send an OTP to your email to verify your identity.</p>
             <div className="flex justify-end gap-3">
-              <Button onClick={onClose} variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
+              <Button onClick={onClose} variant="outline" className="border-[#292932] text-black hover:text-white hover:bg-[#292932]">
                 Cancel
               </Button>
               <Button 
                 onClick={handleSendOTP}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-red-600 hover:bg-red-700 text-white"
                 disabled={loading}
               >
                 {loading ? "Sending..." : "Send OTP"}
@@ -95,7 +97,7 @@ export const AccountRestoreDialog: React.FC<AccountRestoreDialogProps> = ({
               maxLength={6}
             />
             <div className="flex justify-end gap-3">
-              <Button onClick={() => setStep('confirm')} variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
+              <Button onClick={() => setStep('confirm')} variant="outline" className="border-[#292932] text-black hover:text-white hover:bg-[#292932]">
                 Back
               </Button>
               <Button 
@@ -110,5 +112,5 @@ export const AccountRestoreDialog: React.FC<AccountRestoreDialogProps> = ({
         )}
       </div>
     </div>
-  );
+  ) : null;
 }; 

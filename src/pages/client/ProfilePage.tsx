@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { CameraIcon, SaveIcon, UserIcon, GamepadIcon, MapPinIcon, TrophyIcon, UserPlus } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { Breadcrumb } from "../../components/ui/Breadcrumb";
 import { apiFetch, apiUpload } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -375,6 +376,7 @@ export const ProfilePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Breadcrumb />
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">My Profile</h1>
           <p className="text-gray-400">Manage your profile information and view your gaming achievements</p>
@@ -748,7 +750,7 @@ export const ProfilePage: React.FC = () => {
                   <div className="p-3 bg-[#19191d] rounded-lg border border-red-500/20">
                     <div className="text-white text-sm font-medium mb-1">Delete Account</div>
                     <div className="text-gray-400 text-xs mb-3">
-                      This will temporarily delete your account. You can contact admin to restore it permanently.
+                      This will temporarily delete your account. You can restore it within 30 days using your email and OTP. After 30 days, your account will be permanently deleted.
                     </div>
                     <Button 
                       variant="outline" 
@@ -774,7 +776,7 @@ export const ProfilePage: React.FC = () => {
               <button onClick={() => setShowDeleteDialog(false)} className="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
             </div>
             <div className="text-white mb-4">
-              <p className="mb-4">This will temporarily delete your account. You can contact admin to restore it permanently.</p>
+              <p className="mb-4">This will temporarily delete your account. You can restore it within 30 days using your email and OTP. After 30 days, your account will be permanently deleted.</p>
               <p className="text-sm text-gray-400 mb-4">Enter your password to confirm:</p>
               <Input
                 type="password"

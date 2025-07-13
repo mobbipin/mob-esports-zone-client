@@ -47,6 +47,7 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
     try {
       await register(formData);
+      // Success toast is handled by the AuthContext register function
       // Don't navigate to dashboard since user needs to verify email first
       navigate("/login");
     } catch (error: any) {

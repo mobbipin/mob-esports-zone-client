@@ -32,6 +32,9 @@ export async function apiFetch<T>(
     });
     const data = await res.json();
     
+    console.log('API Response status:', res.status);
+    console.log('API Response data:', data);
+    
     // Only show success toast if explicitly requested
     if (data.message && showSuccessToast && res.ok && data.status !== false) {
       toast.success(data.message);
@@ -42,10 +45,17 @@ export async function apiFetch<T>(
       } else if (typeof data.error === 'string') {
         message = data.error;
       }
+      
+      // Don't show error toast for accountDeleted errors
+      if (data.accountDeleted) {
+        throw { ...data, message };
+      }
+      
       if (showErrorToast) {
         toast.error(message);
       }
-      throw { ...data.error, message };
+      // Preserve all properties from the error response, including accountDeleted
+      throw { ...data, message };
     }
     return data;
   } catch (error: any) {
@@ -82,7 +92,8 @@ export async function apiUpload<T>(path: string, formData: FormData, showErrorTo
       if (showErrorToast) {
         toast.error(message);
       }
-      throw { ...data.error, message };
+      // Preserve all properties from the error response, including accountDeleted
+      throw { ...data, message };
     }
     return data;
   } catch (error: any) {

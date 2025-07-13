@@ -6,6 +6,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
 import toast from "react-hot-toast";
+import { Breadcrumb } from "../../components/ui/Breadcrumb";
 
 // Add Modal component (styled like DeleteDialog)
 const Modal = ({ open, onClose, title, children }: { open: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
@@ -319,19 +320,22 @@ export const UsersManagementPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Users Management</h1>
-          <p className="text-gray-400">Manage platform users and their permissions</p>
-        </div>
-        <div className="flex space-x-3">
-          <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
-            Export Users
-          </Button>
-          <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-            <UserCheckIcon className="w-4 h-4 mr-2" />
-            Add User
-          </Button>
+      <div>
+        <Breadcrumb />
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Users Management</h1>
+            <p className="text-gray-400">Manage platform users and their permissions</p>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
+              Export Users
+            </Button>
+            <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">
+              <UserCheckIcon className="w-4 h-4 mr-2" />
+              Add User
+            </Button>
+          </div>
         </div>
       </div>
 

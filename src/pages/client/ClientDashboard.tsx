@@ -306,8 +306,8 @@ export const ClientDashboard: React.FC = () => {
                     {invites.filter(i => i.status === 'pending').map((invite) => (
                       <li key={invite.id} className="flex items-center justify-between bg-[#19191d] rounded px-3 py-2">
                         <div>
-                          <div className="text-white text-sm font-medium">Team: {invite.teamId}</div>
-                          <div className="text-gray-400 text-xs">From: {invite.invitedBy}</div>
+                          <div className="text-white text-sm font-medium">Team: {invite.teamName || 'Unknown Team'}</div>
+                          <div className="text-gray-400 text-xs">From: {invite.invitedByName || invite.invitedByEmail || 'Unknown User'}</div>
                         </div>
                         <div className="flex space-x-2">
                           <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleAccept(invite.id)}>Accept</Button>

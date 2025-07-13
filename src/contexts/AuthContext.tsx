@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
-      }, true, false); // Don't show error toast here, handle it in component
+      }, true, false, false); // Don't show error toast here, handle it in component
       
       localStorage.setItem("token", res.data.token);
       setUser(res.data.user);
@@ -99,11 +99,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Return user data for navigation logic
       return res.data.user;
     } catch (error: any) {
-      // Check if account is deleted
+      // Check if account is deleted and throw it directly
       if (error?.accountDeleted) {
-        throw { accountDeleted: true, message: error.error };
+        throw error; // Throw the original error with accountDeleted property
       }
-      throw new Error(typeof error === "string" ? error : "Login failed");
+      // For other errors, preserve the original error object
+      throw error;
     } finally {
       setLoading(false);
     }

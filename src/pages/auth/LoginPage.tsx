@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -8,6 +8,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
 import { validateRequired, validateEmail } from "../../lib/utils";
 import { AccountRestoreDialog } from "../../components/auth/AccountRestoreDialog";
+import toast from "react-hot-toast";
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -18,6 +19,26 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string[] }>({});
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [forceDialog, setForceDialog] = useState(false);
+  const dialogRef = useRef(false);
+
+  // Check if we need to show dialog on mount
+  React.useEffect(() => {
+    const shouldShowDialog = localStorage.getItem('showRestoreDialog');
+    const restoreEmail = localStorage.getItem('restoreEmail');
+    if (shouldShowDialog === 'true' && restoreEmail) {
+      setEmail(restoreEmail);
+      setShowRestoreDialog(true);
+      setForceDialog(true);
+      dialogRef.current = true;
+      localStorage.removeItem('showRestoreDialog');
+      localStorage.removeItem('restoreEmail');
+    }
+  }, []);
+
+  console.log('Current showRestoreDialog state:', showRestoreDialog);
+  console.log('Current dialogRef state:', dialogRef.current);
+  console.log('Current forceDialog state:', forceDialog);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,20 +62,41 @@ export const LoginPage: React.FC = () => {
         navigate("/dashboard");
       }
     } catch (error: any) {
+      console.log('LoginPage received error:', error);
+      console.log('Error accountDeleted:', error?.accountDeleted);
+      
       if (error?.accountDeleted) {
+        console.log('Setting showRestoreDialog to true');
+        // Store in localStorage to ensure it persists
+        localStorage.setItem('showRestoreDialog', 'true');
+        localStorage.setItem('restoreEmail', email);
+        // Set the email for the restore dialog and force immediate update
+        dialogRef.current = true;
         setShowRestoreDialog(true);
+        setForceDialog(true);
+        // Force a re-render by updating a different state
+        setFieldErrors({}); // This will trigger a re-render
+        
+        // Also use a callback to ensure the dialog shows
+        setTimeout(() => {
+          console.log('Forcing dialog to show via setTimeout');
+          setShowRestoreDialog(true);
+          setForceDialog(true);
+          dialogRef.current = true;
+        }, 100);
       } else if (error && error.fieldErrors) {
         setFieldErrors(error.fieldErrors);
       } else {
         // Show error toast for other errors
         console.error('Login error:', error);
+        toast.error(error?.message || 'Login failed');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return (
+  if (loading && !showRestoreDialog && !dialogRef.current && !forceDialog) return (
     <div className="min-h-screen flex items-center justify-center bg-[#1a1a1e]">
       <div className="w-full max-w-md p-8">
         <Skeleton height={40} width={200} className="mb-6" />
@@ -150,16 +192,22 @@ export const LoginPage: React.FC = () => {
         </Card>
       </div>
       
-      {showRestoreDialog && (
-        <AccountRestoreDialog
-          email={email}
-          onClose={() => setShowRestoreDialog(false)}
-          onRestoreSuccess={() => {
-            setShowRestoreDialog(false);
-            setPassword('');
-          }}
-        />
-      )}
+      <AccountRestoreDialog
+        key={`restore-dialog-${showRestoreDialog}-${dialogRef.current}-${forceDialog}`}
+        email={email}
+        onClose={() => {
+          setShowRestoreDialog(false);
+          dialogRef.current = false;
+          setForceDialog(false);
+        }}
+        onRestoreSuccess={() => {
+          setShowRestoreDialog(false);
+          dialogRef.current = false;
+          setForceDialog(false);
+          setPassword('');
+        }}
+        visible={showRestoreDialog || dialogRef.current || forceDialog}
+      />
     </div>
   );
 };

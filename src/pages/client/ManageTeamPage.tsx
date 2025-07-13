@@ -8,6 +8,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "../../components/ui/card";
 import { apiFetch, apiUpload } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import { Breadcrumb } from "../../components/ui/Breadcrumb";
 
 const PlayerProfileDialog = ({ open, onClose, player }: { open: boolean; onClose: () => void; player: any }) => {
   if (!player) return null;
@@ -202,6 +203,24 @@ export const ManageTeamPage: React.FC = () => {
     }
   };
 
+  const handleLeaveTeam = async () => {
+    if (!team) return;
+    if (confirm("Are you sure you want to leave this team?")) {
+      try {
+        await apiFetch(`/teams/${team.id}/leave`, {
+          method: "DELETE"
+        }, true, false, false);
+        toast.success("Left team successfully!");
+        // Refresh user context to update teamId
+        const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
+        setUserData(me.data);
+        navigate("/dashboard");
+      } catch (err: any) {
+        toast.error(err.message || err?.toString() || "Failed to leave team");
+      }
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -234,6 +253,7 @@ export const ManageTeamPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Breadcrumb />
         <h1 className="text-3xl font-bold text-white mb-6">Manage Team</h1>
         <Card className="bg-[#15151a] border-[#292932] mb-8">
           <CardContent className="p-6">
@@ -255,7 +275,9 @@ export const ManageTeamPage: React.FC = () => {
                   <span className="text-gray-400">Members: </span>
                   <span className="text-white font-medium">{team.members?.length || 1}</span>
                 </div>
-                <Button onClick={() => setIsEditing(true)} className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">Edit Team</Button>
+                {user?.id === team.ownerId && (
+                  <Button onClick={() => setIsEditing(true)} className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">Edit Team</Button>
+                )}
               </div>
             ) : (
               <form onSubmit={handleUpdate} className="space-y-6">
@@ -352,10 +374,15 @@ export const ManageTeamPage: React.FC = () => {
                 {team.members.map((member: any) => (
                   <li key={member.userId} className="flex items-center justify-between bg-[#19191d] rounded px-3 py-2">
                     <div className="flex items-center space-x-2">
-                      <span className="text-white text-sm font-medium">{member.displayName || member.userId}</span>
+                      <span className="text-white text-sm font-medium">{member.displayName || member.email || 'Unknown Player'}</span>
                       <span className="text-gray-400 text-xs">{member.role}</span>
                     </div>
-                    <Button size="sm" variant="outline" className="border-[#f34024] text-[#f34024] hover:text-white hover:bg-[#f34024]/10" onClick={() => { setSelectedProfile(member); setProfileDialogOpen(true); }}>View Profile</Button>
+                    <div className="flex space-x-2">
+                      <Button size="sm" variant="outline" className="border-[#f34024] text-[#f34024] hover:text-white hover:bg-[#f34024]/10" onClick={() => { setSelectedProfile(member); setProfileDialogOpen(true); }}>View Profile</Button>
+                      {member.userId === user?.id && member.role !== 'owner' && (
+                        <Button size="sm" variant="outline" className="border-red-500 text-red-400 hover:bg-red-600 hover:text-white" onClick={() => handleLeaveTeam()}>Leave Team</Button>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
