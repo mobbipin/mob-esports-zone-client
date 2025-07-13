@@ -4,6 +4,7 @@ import { useAuth } from "./contexts/AuthContext";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { ScrollToTop } from "./components/ui/ScrollToTop";
 
 // Public Pages
 import { HomePage } from "./pages/public/HomePage";
@@ -12,6 +13,7 @@ import { RegisterPage } from "./pages/auth/RegisterPage";
 import { VerifyEmailPage } from "./pages/auth/VerifyEmailPage";
 import { TournamentsPage } from "./pages/public/TournamentsPage";
 import { TournamentDetailPage } from "./pages/public/TournamentDetailPage";
+import { RegisteredTeamsPage } from "./pages/public/RegisteredTeamsPage";
 import { NewsPage } from "./pages/public/NewsPage";
 import { NewsDetailPage } from "./pages/public/NewsDetailPage";
 
@@ -60,12 +62,15 @@ export const App = (): JSX.Element => {
   }
 
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Layout />}>
+    <>
+      <ScrollToTop />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="tournaments" element={<TournamentsPage />} />
         <Route path="tournaments/:id" element={<TournamentDetailPage />} />
+        <Route path="tournaments/:id/registered-teams" element={<RegisteredTeamsPage />} />
         <Route path="news" element={<NewsPage />} />
         <Route path="news/:id" element={<NewsDetailPage />} />
         <Route path="/players" element={<PlayerListPage />} />
@@ -158,5 +163,6 @@ export const App = (): JSX.Element => {
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </>
   );
 };

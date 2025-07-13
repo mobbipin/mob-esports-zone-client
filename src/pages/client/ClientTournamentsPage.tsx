@@ -48,7 +48,7 @@ export const ClientTournamentsPage: React.FC = () => {
       await apiFetch(`/tournaments/${tournamentId}/register`, {
         method: "POST",
         body: JSON.stringify({ teamId: user.teamId })
-      });
+      }, true, false, false);
       toast.success("Team registered for tournament!");
       // Optionally refetch tournaments
     } catch (err: any) {

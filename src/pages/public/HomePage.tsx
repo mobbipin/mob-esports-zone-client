@@ -5,8 +5,10 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
 import { apiFetch } from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 export const HomePage: React.FC = () => {
+  const { user } = useAuth();
   const [featuredTournaments, setFeaturedTournaments] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
@@ -57,11 +59,19 @@ export const HomePage: React.FC = () => {
             build your team, and rise through the ranks to become a champion.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register">
-              <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white px-8 py-3 text-lg">
-                Join as Player
-              </Button>
-            </Link>
+            {user ? (
+              <Link to={user.role === 'admin' ? '/admin' : user.role === 'tournament_organizer' ? '/organizer' : '/dashboard'}>
+                <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white px-8 py-3 text-lg">
+                  Go to My Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/register">
+                <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white px-8 py-3 text-lg">
+                  Join as Player
+                </Button>
+              </Link>
+            )}
             <Link to="/tournaments">
               <Button variant="outline" className=" px-8 py-3 text-lg">
                 View Tournaments

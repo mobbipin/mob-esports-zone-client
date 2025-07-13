@@ -33,13 +33,8 @@ export const TeamPage: React.FC = () => {
     apiFetch<{ status: boolean; data: any }>(`/teams/my`)
       .then(res => setTeam(res.data))
       .catch(err => setError(typeof err === "string" ? err : "Failed to load team"))
-      .finally(async () => {
-        // Always refresh user context on mount
-        const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
-        setUserData(me.data);
-        setLoading(false);
-      });
-  }, [user?.teamId, setUserData]);
+      .finally(() => setLoading(false));
+  }, [user?.teamId]);
 
   // Add a function to refresh team info after actions
   const refreshTeam = async () => {
@@ -66,7 +61,7 @@ export const TeamPage: React.FC = () => {
       const res = await apiFetch<{ status: boolean; data: { id: string } }>("/teams", {
         method: "POST",
         body: JSON.stringify(payload),
-      }, true, false); // Don't show error toast here
+      }, true, false, false); // Don't show error toast here
       toast.success("Team created!");
       refreshTeam(); // Call refreshTeam after successful creation
       // Optionally refetch or redirect
@@ -82,7 +77,7 @@ export const TeamPage: React.FC = () => {
       await apiFetch(`/teams/${team.id}`, {
         method: "PUT",
         body: JSON.stringify(formData),
-      }, true, false); // Don't show error toast here
+      }, true, false, false); // Don't show error toast here
       toast.success("Team updated!");
       refreshTeam(); // Call refreshTeam after successful update
       setIsEditing(false);
@@ -112,7 +107,7 @@ export const TeamPage: React.FC = () => {
       await apiFetch(`/teams/${team.id}/invite`, {
         method: "POST",
         body: JSON.stringify({ userEmail: email }),
-      }, true, false); // Don't show error toast here
+      }, true, false, false); // Don't show error toast here
       toast.success("Player invited!");
     } catch (err: any) {
       toast.error(err.message || err?.toString() || "Failed to invite player");
@@ -127,13 +122,13 @@ export const TeamPage: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("logo", file);
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", formData);
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", formData, false, false);
       setLogoUrl(res.data.url);
       toast.success("Logo uploaded!");
       await apiFetch(`/teams/${team.id}`, {
         method: "PUT",
         body: JSON.stringify({ logoUrl: res.data.url })
-      });
+      }, true, false, false);
       refreshTeam(); // Call refreshTeam after successful logo upload
       // Optionally refetch
     } catch (err: any) {

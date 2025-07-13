@@ -19,7 +19,8 @@ export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
   isJson = true,
-  showErrorToast = true
+  showErrorToast = true,
+  showSuccessToast = false
 ): Promise<T> {
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
@@ -31,13 +32,9 @@ export async function apiFetch<T>(
     });
     const data = await res.json();
     
-    // Always show response in toast regardless of status
-    if (data.message) {
-      if (res.ok && data.status !== false) {
-        toast.success(data.message);
-      } else {
-        toast.error(data.message);
-      }
+    // Only show success toast if explicitly requested
+    if (data.message && showSuccessToast && res.ok && data.status !== false) {
+      toast.success(data.message);
     } else if (!res.ok || data.status === false) {
       let message = 'API Error';
       if (data.error && data.error.issues && Array.isArray(data.error.issues) && data.error.issues.length > 0) {
@@ -60,7 +57,7 @@ export async function apiFetch<T>(
 }
 
 // Helper for file uploads (multipart/form-data)
-export async function apiUpload<T>(path: string, formData: FormData, showErrorToast = true) {
+export async function apiUpload<T>(path: string, formData: FormData, showErrorToast = true, showSuccessToast = false) {
   try {
     const token = getToken();
     const headers: Record<string, string> = {};
@@ -72,13 +69,9 @@ export async function apiUpload<T>(path: string, formData: FormData, showErrorTo
     });
     const data = await res.json();
     
-    // Always show response in toast regardless of status
-    if (data.message) {
-      if (res.ok && data.status !== false) {
-        toast.success(data.message);
-      } else {
-        toast.error(data.message);
-      }
+    // Only show success toast if explicitly requested
+    if (data.message && showSuccessToast && res.ok && data.status !== false) {
+      toast.success(data.message);
     } else if (!res.ok || data.status === false) {
       let message = 'API Error';
       if (data.error && data.error.issues && Array.isArray(data.error.issues) && data.error.issues.length > 0) {

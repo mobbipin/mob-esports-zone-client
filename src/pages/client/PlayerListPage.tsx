@@ -111,12 +111,14 @@ const PlayerListPage: React.FC = () => {
         setFriendRequests([]);
       }
     };
-    fetchRequests();
-  }, [user]);
+    if (user) {
+      fetchRequests();
+    }
+  }, [user?.id]);
 
   // Only fetch myTeam if user is logged in
   useEffect(() => {
-    if (!user || !user.teamId) return;
+    if (!user?.teamId) return;
     const fetchMyTeam = async () => {
       try {
         const res: any = await apiFetch(`/teams/my`);
@@ -126,7 +128,7 @@ const PlayerListPage: React.FC = () => {
       }
     };
     fetchMyTeam();
-  }, [user && user.teamId]);
+  }, [user?.teamId]);
 
   const isOwner = user && myTeam && myTeam.ownerId === user.id;
 
@@ -136,7 +138,7 @@ const PlayerListPage: React.FC = () => {
       await apiFetch(`/teams/${myTeam.id}/invite`, {
         method: "POST",
         body: JSON.stringify({ userEmail: player.email })
-      });
+      }, true, false, false);
       toast.success("Invite sent!");
     } catch (err: any) {
       toast.error(err.message || err?.toString() || "Failed to send invite");
@@ -146,7 +148,7 @@ const PlayerListPage: React.FC = () => {
   const sendFriendRequest = async (receiverId: string) => {
     if (!user) return;
     try {
-      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ receiverId }) });
+      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ receiverId }) }, true, false, false);
       toast.success("Friend request sent");
       setFriendRequests((prev) => [...prev, { receiverId, userId: user.id, status: 'pending' }]);
     } catch (err: any) {
@@ -158,7 +160,7 @@ const PlayerListPage: React.FC = () => {
     const req = friendRequests.find((f) => (f.friendId === friendId || f.userId === friendId) && f.status === "pending");
     if (!req) return;
     try {
-      await apiFetch(`/friends/${req.id}/cancel`, { method: "DELETE" });
+      await apiFetch(`/friends/${req.id}/cancel`, { method: "DELETE" }, true, false, false);
       toast.success("Friend request canceled");
       setFriendRequests((prev) => prev.filter((f) => f.id !== req.id));
     } catch (err: any) {

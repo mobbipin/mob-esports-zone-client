@@ -61,7 +61,7 @@ export const OrganizerPostsListPage: React.FC = () => {
       await apiFetch('/pending/posts', {
         method: 'POST',
         body: JSON.stringify(data)
-      });
+      }, true, false, false);
       toast.success('Post created successfully!');
       setShowDialog(false);
       // Refresh the list
@@ -85,14 +85,14 @@ export const OrganizerPostsListPage: React.FC = () => {
             originalId: editingPost.id,
             action: 'update'
           })
-        });
+        }, true, false, false);
         toast.success('Post update submitted for approval!');
       } else {
         // For pending posts, update directly
         await apiFetch(`/pending/posts/${editingPost.id}`, {
           method: 'PUT',
           body: JSON.stringify(data)
-        });
+        }, true, false, false);
         toast.success('Post updated successfully!');
       }
       setShowDialog(false);
@@ -116,7 +116,7 @@ export const OrganizerPostsListPage: React.FC = () => {
     setDeleting(true);
     try {
       if (deleteDialog.source === 'pending') {
-        await apiFetch(`/pending/posts/${deleteDialog.postId}`, { method: "DELETE" });
+        await apiFetch(`/pending/posts/${deleteDialog.postId}`, { method: "DELETE" }, true, false, false);
         toast.success("Post deleted successfully");
       } else if (deleteDialog.source === 'approved') {
         // For approved posts, submit deletion request through pending system
@@ -126,10 +126,10 @@ export const OrganizerPostsListPage: React.FC = () => {
             originalId: deleteDialog.postId,
             action: 'delete'
           })
-        });
+        }, true, false, false);
         toast.success("Post deletion submitted for approval");
       } else {
-        await apiFetch(`/posts/${deleteDialog.postId}`, { method: "DELETE" });
+        await apiFetch(`/posts/${deleteDialog.postId}`, { method: "DELETE" }, true, false, false);
         toast.success("Post deleted successfully");
       }
       setPosts(prev => prev.filter(post => post.id !== deleteDialog.postId));

@@ -42,7 +42,7 @@ export const AdminPendingPostsPage: React.FC = () => {
           approved,
           reviewNotes: reviewNotes || ""
         })
-      });
+      }, true, false, false);
       
       // Remove from list
       setPendingPosts(prev => prev.filter(p => p.id !== postId));

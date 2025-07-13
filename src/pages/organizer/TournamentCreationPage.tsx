@@ -132,7 +132,7 @@ export const OrganizerTournamentCreationPage: React.FC = () => {
       formData.append("file", file);
       formData.append("type", "tournament_banner");
 
-      const response = await apiUpload("/upload/tournament-banner", formData);
+      const response = await apiUpload("/upload/tournament-banner", formData, false, false);
       setBannerUrl(response.data.url);
       toast.success("Banner uploaded successfully!");
     } catch (error: any) {
@@ -216,7 +216,7 @@ export const OrganizerTournamentCreationPage: React.FC = () => {
       await apiFetch("/pending/tournaments", {
         method: "POST",
         body: JSON.stringify(tournamentData),
-      });
+      }, true, false, false);
 
       toast.success("Tournament created successfully! It will be reviewed by admin before being visible to players.");
       navigate("/organizer/tournaments");

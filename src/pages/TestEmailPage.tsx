@@ -20,7 +20,7 @@ export const TestEmailPage: React.FC = () => {
       await apiFetch('/test/send-verification', {
         method: 'POST',
         body: JSON.stringify({ email })
-      }, true, false); // Don't show error toast here
+      }, true, false, false); // Don't show error toast here
       toast.success('Test verification email sent! Check the console for preview URL.');
     } catch (error) {
       const errorMessage = typeof error === 'string' ? error : 'Failed to send test email';
@@ -41,7 +41,7 @@ export const TestEmailPage: React.FC = () => {
       await apiFetch('/test/send-password-reset', {
         method: 'POST',
         body: JSON.stringify({ email })
-      }, true, false); // Don't show error toast here
+      }, true, false, false); // Don't show error toast here
       toast.success('Test password reset email sent! Check the console for preview URL.');
     } catch (error) {
       const errorMessage = typeof error === 'string' ? error : 'Failed to send test email';

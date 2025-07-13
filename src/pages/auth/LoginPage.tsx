@@ -7,6 +7,7 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
 import { validateRequired, validateEmail } from "../../lib/utils";
+import { AccountRestoreDialog } from "../../components/auth/AccountRestoreDialog";
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -16,6 +17,7 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string[] }>({});
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +41,14 @@ export const LoginPage: React.FC = () => {
         navigate("/dashboard");
       }
     } catch (error: any) {
-      if (error && error.fieldErrors) {
+      if (error?.accountDeleted) {
+        setShowRestoreDialog(true);
+      } else if (error && error.fieldErrors) {
         setFieldErrors(error.fieldErrors);
+      } else {
+        // Show error toast for other errors
+        console.error('Login error:', error);
       }
-      // Error toast is handled by the API utility
     } finally {
       setLoading(false);
     }
@@ -143,6 +149,17 @@ export const LoginPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {showRestoreDialog && (
+        <AccountRestoreDialog
+          email={email}
+          onClose={() => setShowRestoreDialog(false)}
+          onRestoreSuccess={() => {
+            setShowRestoreDialog(false);
+            setPassword('');
+          }}
+        />
+      )}
     </div>
   );
 };

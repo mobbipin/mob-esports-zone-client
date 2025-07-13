@@ -16,7 +16,7 @@ import {
 } from "../../lib/utils";
 
 export const ProfilePage: React.FC = () => {
-  const { user, setUserData } = useAuth();
+  const { user, setUserData, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     username: user?.username || "",
@@ -37,6 +37,8 @@ export const ProfilePage: React.FC = () => {
 
   const [achievements, setAchievements] = useState<any[]>([]);
   const [tournamentHistory, setTournamentHistory] = useState<any[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
 
   useEffect(() => {
     if (!user?.id) {
@@ -77,7 +79,7 @@ export const ProfilePage: React.FC = () => {
     apiFetch<{ status: boolean; data: any[] }>(`/players/${user.id}/tournaments`)
       .then(res => setTournamentHistory(res.data))
       .catch(() => setTournamentHistory([]));
-  }, [user?.id, user]);
+  }, [user?.id, user?.playerProfile]);
 
   // Individual field validation functions
   const validateUsername = (value: string): string => {
@@ -236,7 +238,7 @@ export const ProfilePage: React.FC = () => {
           displayName: user.role === 'player' ? formData.gameUsername : undefined,
           username: formData.username,
         }),
-      }, true, false); // Don't show error toast here
+      }, true, false, false); // Don't show error toast here
       
       // Update PlayerProfile table only for players
       if (user.role === 'player') {
@@ -248,7 +250,7 @@ export const ProfilePage: React.FC = () => {
             rank: formData.rank,
             gameId: formData.gameUsername,
           }),
-        }, true, false); // Don't show error toast here
+        }, true, false, false); // Don't show error toast here
       } else {
         // For organizers and admins, only update bio in user table
         await apiFetch(`/users/${user.id}`, {
@@ -256,7 +258,7 @@ export const ProfilePage: React.FC = () => {
           body: JSON.stringify({
             displayName: formData.bio, // Use displayName for bio for non-players
           }),
-        }, true, false);
+        }, true, false, false);
       }
       
       // Refetch user
@@ -316,7 +318,7 @@ export const ProfilePage: React.FC = () => {
     try {
       await apiFetch('/auth/resend-verification-user', {
         method: 'POST'
-      });
+      }, true, false, false);
       toast.success('Verification email sent! Check your inbox.');
     } catch (error) {
       const errorMessage = typeof error === 'string' ? error : 'Failed to send verification email';
@@ -333,14 +335,14 @@ export const ProfilePage: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("avatar", file);
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/avatar", formData, false); // Don't show error toast here
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/avatar", formData, false, false); // Don't show error toast here
       setAvatarUrl(res.data.url);
       toast.success("Avatar uploaded!");
       // Update user profile with new avatar
       await apiFetch(`/players/${user.id}`, {
         method: "PUT",
         body: JSON.stringify({ avatar: res.data.url })
-      }, true, false); // Don't show error toast here
+      }, true, false, false); // Don't show error toast here
       // Refetch user to update avatar in context
       const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
       setUserData(me.data);
@@ -473,7 +475,7 @@ export const ProfilePage: React.FC = () => {
                         <Button 
                           onClick={() => navigate("/dashboard")}
                           variant="outline"
-                          className="w-full border-[#292932] hover:bg-[#292932] text-white text-sm"
+                          className="w-full border-[#292932] hover:bg-[#292932] hover:text-white text-sm"
                         >
                           <UserIcon className="w-4 h-4 mr-2" />
                           Go to Dashboard
@@ -737,9 +739,83 @@ export const ProfilePage: React.FC = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Delete Account Section */}
+            <Card className="bg-[#15151a] border-[#292932]">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold text-white mb-4">Danger Zone</h3>
+                <div className="space-y-3">
+                  <div className="p-3 bg-[#19191d] rounded-lg border border-red-500/20">
+                    <div className="text-white text-sm font-medium mb-1">Delete Account</div>
+                    <div className="text-gray-400 text-xs mb-3">
+                      This will temporarily delete your account. You can contact admin to restore it permanently.
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                      onClick={() => setShowDeleteDialog(true)}
+                    >
+                      Delete My Account
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
+
+      {/* Delete Account Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-[#19191d] p-8 rounded-xl shadow-2xl w-full max-w-md border border-[#292932]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-lg text-white font-semibold">Delete Account</div>
+              <button onClick={() => setShowDeleteDialog(false)} className="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div className="text-white mb-4">
+              <p className="mb-4">This will temporarily delete your account. You can contact admin to restore it permanently.</p>
+              <p className="text-sm text-gray-400 mb-4">Enter your password to confirm:</p>
+              <Input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full bg-[#15151a] border-[#292932] text-white focus:border-[#f34024]"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button onClick={() => setShowDeleteDialog(false)} variant="outline" className="border-[#292932] hover:text-white hover:bg-[#292932]">
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (deletePassword) {
+                    apiFetch('/auth/soft-delete-account', {
+                      method: 'POST',
+                      body: JSON.stringify({ password: deletePassword })
+                    }, true, false, false)
+                    .then(() => {
+                      toast.success('Account deleted successfully');
+                      // Logout user properly
+                      logout();
+                      navigate('/');
+                    })
+                    .catch((err: any) => {
+                      toast.error(err.message || 'Failed to delete account');
+                    });
+                  } else {
+                    toast.error('Please enter your password');
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Delete Account
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

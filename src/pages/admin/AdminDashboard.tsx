@@ -20,11 +20,11 @@ export const AdminDashboard: React.FC = () => {
       try {
         // Try to get total counts from API, fallback to data.length
         const [usersRes, teamsRes, tournamentsRes, postsRes, upcomingRes, organizersRes, tournamentsPendingRes, postsPendingRes] = await Promise.all([
-          apiFetch<any>("/players?admin=true"),
-          apiFetch<any>("/teams?admin=true"),
-          apiFetch<any>("/tournaments?admin=true"),
-          apiFetch<any>("/posts?admin=true"),
-          apiFetch<any>("/tournaments?status=upcoming&limit=3"),
+          apiFetch<any>("/players"),
+          apiFetch<any>("/teams"),
+          apiFetch<any>("/tournaments"),
+          apiFetch<any>("/posts"),
+          apiFetch<any>("/tournaments"),
           apiFetch<any>("/admin/pending-organizers"),
           apiFetch<any>("/admin/pending-tournaments"),
           apiFetch<any>("/admin/pending-posts")

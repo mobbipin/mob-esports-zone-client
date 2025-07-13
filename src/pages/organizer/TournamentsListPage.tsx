@@ -61,7 +61,7 @@ export const OrganizerTournamentsListPage: React.FC = () => {
       await apiFetch('/pending/tournaments', {
         method: 'POST',
         body: JSON.stringify(data)
-      });
+      }, true, false, false);
       toast.success('Tournament created successfully!');
       setShowDialog(false);
       // Refresh the list
@@ -85,14 +85,14 @@ export const OrganizerTournamentsListPage: React.FC = () => {
             originalId: editingTournament.id,
             action: 'update'
           })
-        });
+        }, true, false, false);
         toast.success('Tournament update submitted for approval!');
       } else {
         // For pending tournaments, update directly
         await apiFetch(`/pending/tournaments/${editingTournament.id}`, {
           method: 'PUT',
           body: JSON.stringify(data)
-        });
+        }, true, false, false);
         toast.success('Tournament updated successfully!');
       }
       setShowDialog(false);
@@ -116,7 +116,7 @@ export const OrganizerTournamentsListPage: React.FC = () => {
     setDeleting(true);
     try {
       if (deleteDialog.source === 'pending') {
-        await apiFetch(`/pending/tournaments/${deleteDialog.tournamentId}`, { method: "DELETE" });
+        await apiFetch(`/pending/tournaments/${deleteDialog.tournamentId}`, { method: "DELETE" }, true, false, false);
         toast.success("Tournament deleted successfully");
       } else if (deleteDialog.source === 'approved') {
         // For approved tournaments, submit deletion request through pending system
@@ -126,10 +126,10 @@ export const OrganizerTournamentsListPage: React.FC = () => {
             originalId: deleteDialog.tournamentId,
             action: 'delete'
           })
-        });
+        }, true, false, false);
         toast.success("Tournament deletion submitted for approval");
       } else {
-        await apiFetch(`/tournaments/${deleteDialog.tournamentId}`, { method: "DELETE" });
+        await apiFetch(`/tournaments/${deleteDialog.tournamentId}`, { method: "DELETE" }, true, false, false);
         toast.success("Tournament deleted successfully");
       }
       setTournaments(prev => prev.filter(tournament => tournament.id !== deleteDialog.tournamentId));

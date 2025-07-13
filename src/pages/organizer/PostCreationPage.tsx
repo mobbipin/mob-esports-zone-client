@@ -47,7 +47,7 @@ export const OrganizerPostCreationPage: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formData, false);
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/file", formData, false, false);
       setBannerUrl(res.data.url);
       setFormData(prev => ({ ...prev, imageUrl: res.data.url }));
       toast.success("Image uploaded!");
@@ -85,7 +85,7 @@ export const OrganizerPostCreationPage: React.FC = () => {
       await apiFetch("/pending/posts", {
         method: "POST",
         body: JSON.stringify(payload),
-      }, true, false);
+      }, true, false, false);
       
       toast.success("Post created successfully! It will be reviewed by admin before being visible to players.");
       navigate("/organizer/posts");

@@ -172,7 +172,7 @@ export const ManageTeamPage: React.FC = () => {
       await apiFetch(`/teams/${team.id}`, {
         method: "PUT",
         body: JSON.stringify(formData)
-      });
+      }, true, false, false);
       toast.success("Team updated!");
       setIsEditing(false);
       refreshTeamAndInvites(); // Call refresh after successful update
@@ -191,7 +191,7 @@ export const ManageTeamPage: React.FC = () => {
       await apiFetch(`/teams/${team.id}/invite`, {
         method: "POST",
         body: JSON.stringify({ userEmail: inviteEmail })
-      });
+      }, true, false, false);
       toast.success("Player invited!");
       setInviteEmail("");
       refreshTeamAndInvites(); // Call refresh after successful invite
@@ -320,7 +320,7 @@ export const ManageTeamPage: React.FC = () => {
                     await apiFetch(`/teams/${team.id}/transfer-owner`, {
                       method: "POST",
                       body: JSON.stringify({ newOwnerId })
-                    });
+                    }, true, false, false);
                     toast.success("Ownership transferred!");
                     refreshTeamAndInvites(); // Call refresh after successful transfer
                   } catch (err: any) {

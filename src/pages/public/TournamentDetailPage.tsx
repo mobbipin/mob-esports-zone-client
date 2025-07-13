@@ -90,7 +90,7 @@ export const TournamentDetailPage: React.FC = () => {
         await apiFetch(`/tournaments/${id}/register`, {
           method: "POST",
           body: JSON.stringify({ userId: user.id })
-        });
+        }, true, false, false);
         toast.success("Registered for tournament!");
         // Refetch tournament data
         const res = await apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`);
@@ -112,7 +112,7 @@ export const TournamentDetailPage: React.FC = () => {
           await apiFetch(`/tournaments/${id}/register`, {
             method: "POST",
             body: JSON.stringify({ teamId: user.teamId })
-          });
+          }, true, false, false);
           toast.success("Team registered for tournament!");
           const res = await apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`);
           setTournament(res.data);
@@ -137,7 +137,7 @@ export const TournamentDetailPage: React.FC = () => {
           teamId: user.teamId,
           selectedPlayers: selectedPlayers
         })
-      });
+      }, true, false, false);
       toast.success("Team registered for tournament!");
       setShowPlayerSelection(false);
       setSelectedPlayers([]);
@@ -159,7 +159,7 @@ export const TournamentDetailPage: React.FC = () => {
     try {
       await apiFetch(`/tournaments/${id}/withdraw`, {
         method: "DELETE"
-      });
+      }, true, false, false);
       toast.success("Registration withdrawn successfully!");
       // Refetch tournament data
       const res = await apiFetch<{ status: boolean; data: any }>(`/tournaments/${id}`);
@@ -372,6 +372,23 @@ export const TournamentDetailPage: React.FC = () => {
                           className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white"
                         >
                           Login to Register
+                        </Button>
+                      </div>
+                    ) : user.role === 'admin' ? (
+                      <div className="space-y-3">
+                        <div className="text-gray-400 text-sm">Admins cannot register for tournaments.</div>
+                        <Button 
+                          onClick={() => navigate(`/admin/tournaments/${id}/view`)}
+                          className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white"
+                        >
+                          Manage Tournament
+                        </Button>
+                      </div>
+                    ) : user.role === 'tournament_organizer' ? (
+                      <div className="space-y-3">
+                        <div className="text-gray-400 text-sm">Tournament organizers cannot register for tournaments.</div>
+                        <Button disabled className="w-full bg-gray-600 text-gray-400 cursor-not-allowed">
+                          Registration Disabled
                         </Button>
                       </div>
                     ) : tournament.type === 'solo' ? (

@@ -37,7 +37,7 @@ export const CreateTeamDialog: React.FC<{
     try {
       const form = new FormData();
       form.append("logo", file);
-      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", form, false);
+      const res = await apiUpload<{ status: boolean; data: { url: string } }>("/upload/team-logo", form, false, false);
       setFormData(prev => ({ ...prev, logoUrl: res.data.url }));
       toast.success("Logo uploaded!");
     } catch (err: any) {
@@ -63,7 +63,7 @@ export const CreateTeamDialog: React.FC<{
       const res = await apiFetch<{ status: boolean; data: { id: string } }>("/teams", {
         method: "POST",
         body: JSON.stringify(payload)
-      }, true, false);
+      }, true, false, false);
       toast.success("Team created!");
       // Always refresh user data after team creation
       const me = await apiFetch<{ status: boolean; data: any }>("/auth/me");
@@ -113,7 +113,7 @@ export const CreateTeamDialog: React.FC<{
                 <Button type="submit" className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white" disabled={loading}>
                   {loading ? "Creating..." : "Create Team"}
                 </Button>
-                <Button type="button" variant="outline" className="w-full border-[#292932] hover:bg-[#292932] text-white" onClick={onClose}>
+                <Button type="button" variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white text-white" onClick={onClose}>
                   Cancel
                 </Button>
               </div>

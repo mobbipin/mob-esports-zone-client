@@ -16,11 +16,14 @@ export const Navbar: React.FC = () => {
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchNotifications();
-    // Poll every 30s
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    // Only fetch notifications if user is logged in
+    if (user) {
+      fetchNotifications();
+      // Poll every 30s
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const fetchNotifications = async () => {
     try {

@@ -28,7 +28,7 @@ const NotificationsPage: React.FC = () => {
 
   const markAsRead = async (id: string) => {
     try {
-      await apiFetch(`/notifications/${id}/read`, { method: "PUT" });
+      await apiFetch(`/notifications/${id}/read`, { method: "PUT" }, true, false, false);
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, isRead: true } : n)
       );
@@ -40,7 +40,7 @@ const NotificationsPage: React.FC = () => {
 
   const deleteNotification = async (id: string) => {
     try {
-      await apiFetch(`/notifications/${id}`, { method: "DELETE" });
+      await apiFetch(`/notifications/${id}`, { method: "DELETE" }, true, false, false);
       setNotifications(prev => prev.filter(n => n.id !== id));
       toast.success("Notification deleted");
     } catch (error) {

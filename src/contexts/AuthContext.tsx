@@ -84,7 +84,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
-      }, true, true); // Show error toast here
+      }, true, false); // Don't show error toast here, handle it in component
+      
       localStorage.setItem("token", res.data.token);
       setUser(res.data.user);
       
@@ -97,7 +98,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Return user data for navigation logic
       return res.data.user;
-    } catch (error) {
+    } catch (error: any) {
+      // Check if account is deleted
+      if (error?.accountDeleted) {
+        throw { accountDeleted: true, message: error.error };
+      }
       throw new Error(typeof error === "string" ? error : "Login failed");
     } finally {
       setLoading(false);
@@ -142,7 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await apiFetch(`/players/${user.id}`, {
           method: "PUT",
           body: JSON.stringify(userData),
-        }, true, false); // Don't show error toast here, let the component handle it
+        }, true, false, false); // Don't show error toast here, let the component handle it
         // Refetch user profile
         const res = await apiFetch<{ status: boolean; data: User }>("/auth/me");
         setUser(res.data);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SearchIcon, FilterIcon, EyeIcon, BanIcon, CrownIcon, UserCheckIcon } from "lucide-react";
+import { SearchIcon, FilterIcon, EyeIcon, BanIcon, CrownIcon, UserCheckIcon, UserIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
@@ -38,20 +38,22 @@ export const UsersManagementPage: React.FC = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [banDialog, setBanDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
-  const [promoteDialog, setPromoteDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
   const [bulkBanDialog, setBulkBanDialog] = useState(false);
   const [unbanDialog, setUnbanDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
   const [pendingOrganizers, setPendingOrganizers] = useState<any[]>([]);
+  const [approvedOrganizers, setApprovedOrganizers] = useState<any[]>([]);
+  const [deletedUsers, setDeletedUsers] = useState<any[]>([]);
   const [organizersLoading, setOrganizersLoading] = useState(false);
   const [unapproveDialog, setUnapproveDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
+  const [restoreDialog, setRestoreDialog] = useState<{ open: boolean, userId?: string, username?: string }>({ open: false });
+  const [activeTab, setActiveTab] = useState<'all' | 'organizers' | 'deleted'>('all');
 
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      let query = `/players?page=${page}&limit=${limit}`;
-      if (searchTerm) query += `&search=${encodeURIComponent(searchTerm)}`;
-      const res = await apiFetch<any>(query);
+      const res = await apiFetch<any>('/admin/users');
       setUsers(Array.isArray(res.data) ? res.data : []);
       setTotal(res.total || (Array.isArray(res.data) ? res.data.length : 0));
     } catch (err: any) {
@@ -65,7 +67,7 @@ export const UsersManagementPage: React.FC = () => {
   const fetchPendingOrganizers = async () => {
     setOrganizersLoading(true);
     try {
-      const res = await apiFetch<any>('/auth/pending-organizers');
+      const res = await apiFetch<any>('/admin/pending-organizers');
       setPendingOrganizers(res.data || []);
     } catch (err: any) {
       console.error("Pending organizers API error:", err);
@@ -74,9 +76,29 @@ export const UsersManagementPage: React.FC = () => {
     }
   };
 
+  const fetchApprovedOrganizers = async () => {
+    try {
+      const res = await apiFetch<any>('/admin/approved-organizers');
+      setApprovedOrganizers(res.data || []);
+    } catch (err: any) {
+      console.error("Approved organizers API error:", err);
+    }
+  };
+
+  const fetchDeletedUsers = async () => {
+    try {
+      const res = await apiFetch<any>('/admin/deleted-users');
+      setDeletedUsers(res.data || []);
+    } catch (err: any) {
+      console.error("Deleted users API error:", err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchPendingOrganizers();
+    fetchApprovedOrganizers();
+    fetchDeletedUsers();
     // eslint-disable-next-line
   }, [page, searchTerm]);
 
@@ -85,13 +107,27 @@ export const UsersManagementPage: React.FC = () => {
     ...user,
     status: user.banned === 1 ? 'banned' : (user.status || 'active'),
   }));
-  const filteredUsers = mappedUsers.filter(user => {
-    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  
+  // Filter users based on active tab
+  const getFilteredUsers = () => {
+    let filteredData = mappedUsers;
+    
+    if (activeTab === 'organizers') {
+      filteredData = mappedUsers.filter(user => user.role === 'tournament_organizer');
+    } else if (activeTab === 'deleted') {
+      filteredData = deletedUsers;
+    }
+    
+    return filteredData.filter(user => {
+      const matchesSearch = user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = roleFilter === "all" || user.role === roleFilter;
+      const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  };
+  
+  const filteredUsers = getFilteredUsers();
 
   const handleSelectUser = (userId: number) => {
     setSelectedUsers(prev => 
@@ -125,7 +161,7 @@ export const UsersManagementPage: React.FC = () => {
   const handleBanUser = async (userId: string) => {
     setActionLoading(true);
     try {
-      await apiFetch(`/players/${userId}/ban`, { method: "PUT" }, true, false); // Don't show error toast here
+      await apiFetch(`/admin/users/${userId}/ban`, { method: "PUT" }, true, false, false);
       toast.success("User banned successfully");
       fetchUsers();
     } catch (err: any) {
@@ -136,19 +172,7 @@ export const UsersManagementPage: React.FC = () => {
     }
   };
 
-  const handlePromoteUser = async (userId: string) => {
-    setActionLoading(true);
-    try {
-      await apiFetch(`/players/${userId}/promote`, { method: "PUT" }, true, false); // Don't show error toast here
-      toast.success("User promoted to admin successfully");
-      fetchUsers();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to promote user");
-    } finally {
-      setActionLoading(false);
-      setPromoteDialog({ open: false });
-    }
-  };
+
 
   const handleBulkBan = async () => {
     if (selectedUsers.length === 0) {
@@ -175,7 +199,7 @@ export const UsersManagementPage: React.FC = () => {
   const handleUnbanUser = async (userId: string) => {
     setActionLoading(true);
     try {
-      await apiFetch(`/players/${userId}/unban`, { method: "PUT" }, true, false); // Don't show error toast here
+      await apiFetch(`/admin/users/${userId}/unban`, { method: "PUT" }, true, false, false);
       toast.success("User unbanned successfully");
       fetchUsers();
     } catch (err: any) {
@@ -189,12 +213,12 @@ export const UsersManagementPage: React.FC = () => {
   const handleApproveOrganizer = async (organizerId: string) => {
     setActionLoading(true);
     try {
-      await apiFetch('/auth/approve-organizer', {
-        method: 'POST',
-        body: JSON.stringify({ organizerId })
-      }, true, false);
+      await apiFetch(`/admin/approve-organizer/${organizerId}`, {
+        method: 'POST'
+      }, true, false, false);
       toast.success("Tournament organizer approved successfully");
       fetchPendingOrganizers();
+      fetchApprovedOrganizers();
       fetchUsers(); // Refresh users list as well
     } catch (err: any) {
       toast.error(err.message || "Failed to approve organizer");
@@ -206,18 +230,52 @@ export const UsersManagementPage: React.FC = () => {
   const handleUnapproveOrganizer = async (userId: string) => {
     setActionLoading(true);
     try {
-      await apiFetch('/auth/unapprove-organizer', {
-        method: 'POST',
-        body: JSON.stringify({ organizerId: userId })
-      }, true, false);
+      await apiFetch(`/admin/unapprove-organizer/${userId}`, {
+        method: 'POST'
+      }, true, false, false);
       toast.success("Tournament organizer unapproved successfully");
       fetchPendingOrganizers();
+      fetchApprovedOrganizers();
       fetchUsers(); // Refresh users list as well
     } catch (err: any) {
       toast.error(err.message || "Failed to unapprove organizer");
     } finally {
       setActionLoading(false);
       setUnapproveDialog({ open: false });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    setActionLoading(true);
+    try {
+      await apiFetch(`/admin/users/${userId}`, {
+        method: 'DELETE'
+      }, true, false, false);
+      toast.success("User deleted successfully");
+      fetchUsers();
+      fetchDeletedUsers();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete user");
+    } finally {
+      setActionLoading(false);
+      setDeleteDialog({ open: false });
+    }
+  };
+
+  const handleRestoreUser = async (userId: string) => {
+    setActionLoading(true);
+    try {
+      await apiFetch(`/admin/users/${userId}/restore`, {
+        method: 'PUT'
+      }, true, false, false);
+      toast.success("User restored successfully");
+      fetchUsers();
+      fetchDeletedUsers();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to restore user");
+    } finally {
+      setActionLoading(false);
+      setRestoreDialog({ open: false });
     }
   };
 
@@ -277,51 +335,43 @@ export const UsersManagementPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Pending Tournament Organizers */}
-      {pendingOrganizers.length > 0 && (
-        <Card className="bg-[#15151a] border-[#292932]">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <CrownIcon className="w-5 h-5 text-yellow-500" />
-              <h2 className="text-lg font-semibold text-white">Pending Tournament Organizers</h2>
-              <span className="bg-yellow-600 text-white text-xs px-2 py-1 rounded-full">
-                {pendingOrganizers.length}
-              </span>
-            </div>
-            
-            <div className="space-y-3">
-              {pendingOrganizers.map((organizer) => (
-                <div key={organizer.id} className="flex items-center justify-between p-3 bg-[#19191d] rounded-lg border border-[#292932]">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-medium text-sm">
-                        {organizer.username?.charAt(0).toUpperCase() || organizer.email?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-white font-medium">{organizer.username || 'No username'}</div>
-                      <div className="text-gray-400 text-sm">{organizer.email}</div>
-                      <div className="text-gray-500 text-xs">
-                        Registered: {new Date(organizer.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleApproveOrganizer(organizer.id)}
-                      disabled={actionLoading}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {actionLoading ? "Approving..." : "Approve"}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Tabs for different user types */}
+      <Card className="bg-[#15151a] border-[#292932]">
+        <CardContent className="p-6">
+          <div className="flex space-x-4 mb-6">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === 'all' 
+                  ? 'bg-[#f34024] text-white' 
+                  : 'bg-[#19191d] text-gray-400 hover:text-white'
+              }`}
+            >
+              All Users ({users.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('organizers')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === 'organizers' 
+                  ? 'bg-[#f34024] text-white' 
+                  : 'bg-[#19191d] text-gray-400 hover:text-white'
+              }`}
+            >
+              Tournament Organizers ({users.filter(u => u.role === 'tournament_organizer').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('deleted')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === 'deleted' 
+                  ? 'bg-[#f34024] text-white' 
+                  : 'bg-[#19191d] text-gray-400 hover:text-white'
+              }`}
+            >
+              Deleted Users ({deletedUsers.length})
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card className="bg-[#15151a] border-[#292932]">
@@ -482,8 +532,16 @@ export const UsersManagementPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="text-gray-400 text-sm">{user.lastActive}</div>
-                        <div className="text-gray-500 text-xs">Joined {user.joinDate}</div>
+                        {activeTab === 'deleted' ? (
+                          <div className="text-gray-400 text-sm">
+                            Deleted: {user.deletedAt ? new Date(user.deletedAt).toLocaleDateString() : 'Unknown'}
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-gray-400 text-sm">{user.lastActive}</div>
+                            <div className="text-gray-500 text-xs">Joined {user.joinDate}</div>
+                          </>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center space-x-2">
@@ -495,6 +553,17 @@ export const UsersManagementPage: React.FC = () => {
                           >
                             View
                           </Button>
+                          
+                          {/* Organizer-specific actions */}
+                          {user.role === "tournament_organizer" && !user.isApproved && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleApproveOrganizer(user.id)}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              Approve
+                            </Button>
+                          )}
                           {user.role === "tournament_organizer" && user.isApproved && (
                             <Button
                               size="sm"
@@ -504,6 +573,8 @@ export const UsersManagementPage: React.FC = () => {
                               Unapprove
                             </Button>
                           )}
+                          
+                          {/* User status actions */}
                           {user.status === "banned" ? (
                             <Button
                               size="sm"
@@ -513,29 +584,35 @@ export const UsersManagementPage: React.FC = () => {
                               Unban
                             </Button>
                           ) : (
-                            <>
-                              {user.role === "player" && user.status !== "banned" && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handlePromoteUser(user.id)}
-                                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                                >
-                                  <CrownIcon className="w-3 h-3 mr-1" />
-                                  Promote
-                                </Button>
-                              )}
-                              {user.status !== "banned" && (
-                                <Button 
-                                  size="sm"
-                                  onClick={() => handleBanUser(user.id)}
-                                  variant="outline"
-                                  className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                                >
-                                  <BanIcon className="w-3 h-3 mr-1" />
-                                  Ban
-                                </Button>
-                              )}
-                            </>
+                            <Button 
+                              size="sm"
+                              onClick={() => handleBanUser(user.id)}
+                              variant="outline"
+                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                            >
+                              <BanIcon className="w-3 h-3 mr-1" />
+                              Ban
+                            </Button>
+                          )}
+                          
+                          {/* Delete/Restore action */}
+                          {activeTab === 'deleted' ? (
+                            <Button 
+                              size="sm"
+                              onClick={() => setRestoreDialog({ open: true, userId: user.id, username: user.username })}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              Restore
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm"
+                              onClick={() => setDeleteDialog({ open: true, userId: user.id, username: user.username })}
+                              variant="outline"
+                              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                            >
+                              Delete
+                            </Button>
                           )}
                         </div>
                       </td>
@@ -617,13 +694,7 @@ export const UsersManagementPage: React.FC = () => {
           <Button onClick={() => handleBanUser(banDialog.userId!)} className="bg-red-600 text-white" disabled={actionLoading}>{actionLoading ? "Banning..." : "Ban"}</Button>
         </div>
       </Modal>
-      <Modal open={promoteDialog.open} onClose={() => setPromoteDialog({ open: false })} title="Promote User">
-        <div>Are you sure you want to promote user <b>{promoteDialog.username}</b> to admin?</div>
-        <div className="flex justify-end gap-3 mt-6">
-          <Button onClick={() => setPromoteDialog({ open: false })} variant="outline">Cancel</Button>
-          <Button onClick={() => handlePromoteUser(promoteDialog.userId!)} className="bg-purple-600 text-white" disabled={actionLoading}>{actionLoading ? "Promoting..." : "Promote"}</Button>
-        </div>
-      </Modal>
+
       <Modal open={bulkBanDialog} onClose={() => setBulkBanDialog(false)} title="Ban Users">
         <div className="text-white">Are you sure you want to ban <b>{selectedUsers.length}</b> user(s)? This action cannot be undone.</div>
         <div className="flex justify-end gap-3 mt-6">
@@ -643,6 +714,20 @@ export const UsersManagementPage: React.FC = () => {
         <div className="flex justify-end gap-3 mt-6">
           <Button onClick={() => setUnapproveDialog({ open: false })} variant="outline">Cancel</Button>
           <Button onClick={() => handleUnapproveOrganizer(unapproveDialog.userId!)} className="bg-yellow-600 text-white" disabled={actionLoading}>{actionLoading ? "Unapproving..." : "Unapprove"}</Button>
+        </div>
+      </Modal>
+      <Modal open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false })} title="Delete User">
+        <div className="text-white">Are you sure you want to delete user <b>{deleteDialog.username}</b>? This action cannot be undone.</div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button onClick={() => setDeleteDialog({ open: false })} variant="outline">Cancel</Button>
+          <Button onClick={() => handleDeleteUser(deleteDialog.userId!)} className="bg-red-600 text-white" disabled={actionLoading}>{actionLoading ? "Deleting..." : "Delete"}</Button>
+        </div>
+      </Modal>
+      <Modal open={restoreDialog.open} onClose={() => setRestoreDialog({ open: false })} title="Restore User">
+        <div className="text-white">Are you sure you want to restore user <b>{restoreDialog.username}</b>?</div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button onClick={() => setRestoreDialog({ open: false })} variant="outline">Cancel</Button>
+          <Button onClick={() => handleRestoreUser(restoreDialog.userId!)} className="bg-green-600 text-white" disabled={actionLoading}>{actionLoading ? "Restoring..." : "Restore"}</Button>
         </div>
       </Modal>
     </div>

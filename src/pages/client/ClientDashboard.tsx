@@ -72,20 +72,20 @@ export const ClientDashboard: React.FC = () => {
   }, [user, user?.teamId]);
 
   const handleAccept = async (inviteId: string) => {
-    await apiFetch(`/teams/invite/${inviteId}/accept`, { method: "POST" });
+    await apiFetch(`/teams/invite/${inviteId}/accept`, { method: "POST" }, true, false, false);
     setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "accepted" } : i));
     toast.success("Invite accepted!");
   };
   
   const handleReject = async (inviteId: string) => {
-    await apiFetch(`/teams/invite/${inviteId}/reject`, { method: "POST" });
+    await apiFetch(`/teams/invite/${inviteId}/reject`, { method: "POST" }, true, false, false);
     setInvites((prev) => prev.map(i => i.id === inviteId ? { ...i, status: "rejected" } : i));
     toast.success("Invite rejected!");
   };
 
   const handleWithdrawFromTournament = async (tournamentId: string) => {
     try {
-      await apiFetch(`/tournaments/${tournamentId}/withdraw`, { method: "DELETE" });
+      await apiFetch(`/tournaments/${tournamentId}/withdraw`, { method: "DELETE" }, true, false, false);
       setRegisteredTournaments(prev => prev.filter(t => t.id !== tournamentId));
       toast.success("Withdrawn from tournament successfully!");
     } catch (err: any) {
@@ -262,15 +262,26 @@ export const ClientDashboard: React.FC = () => {
                       Browse Tournaments
                     </Button>
                   </Link>
-                  <Button
-                    variant="outline"
-                    className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start"
-                    onClick={handleCreateTeamClick}
-                    disabled={!!team}
-                  >
-                    <UsersIcon className="w-4 h-4 mr-2" />
-                    {team ? "Manage Team" : "Create Team"}
-                  </Button>
+                  {team ? (
+                    <Link to="/dashboard/manage-team">
+                      <Button
+                        variant="outline"
+                        className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start"
+                      >
+                        <UsersIcon className="w-4 h-4 mr-2" />
+                        Manage Team
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start"
+                      onClick={handleCreateTeamClick}
+                    >
+                      <UsersIcon className="w-4 h-4 mr-2" />
+                      Create Team
+                    </Button>
+                  )}
                   <Link to="/dashboard/profile">
                     <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start">
                       <StarIcon className="w-4 h-4 mr-2" />

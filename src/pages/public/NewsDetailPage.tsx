@@ -1,25 +1,130 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { CalendarIcon, UserIcon, ClockIcon, ArrowLeftIcon, ShareIcon, TagIcon } from "lucide-react";
+import { CalendarIcon, UserIcon, ClockIcon, ArrowLeftIcon, ShareIcon, TagIcon, HeartIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
 import { Skeleton } from "../../components/ui/skeleton";
+import toast from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 export const NewsDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     apiFetch<{ status: boolean; data: any }>(`/posts/${id}`)
-      .then(res => setArticle(res.data))
+      .then(res => {
+        setArticle(res.data);
+        setLikeCount(res.data.likes || 0);
+        // Check if user has liked this article
+        setLiked(Boolean(res.data.userLiked));
+      })
       .catch(err => setError(typeof err === "string" ? err : "Failed to load article"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, user?.id]); // Only depend on user.id, not the entire user object
+
+      const handleLike = async () => {
+    if (!user) {
+      toast.error("Please login to like articles");
+      return;
+    }
+    
+    if (likeLoading) return; // Prevent rapid clicking
+    
+    setLikeLoading(true);
+    
+    // Get current state before any changes
+    const currentLiked = liked;
+    const currentLikeCount = likeCount;
+    
+    try {
+      if (currentLiked) {
+        // Currently liked, so unlike
+        await apiFetch(`/posts/unlike`, { 
+          method: "POST", 
+          body: JSON.stringify({ postId: id })
+        }, true, false, false);
+        setLiked(false);
+        setLikeCount(currentLikeCount - 1);
+      } else {
+        // Currently not liked, so like
+        await apiFetch(`/posts/like`, { 
+          method: "POST", 
+          body: JSON.stringify({ postId: id })
+        }, true, false, false);
+        setLiked(true);
+        setLikeCount(currentLikeCount + 1);
+      }
+    } catch (error: any) {
+      if (error.message && error.message.includes("already liked")) {
+        setLiked(true);
+        await refreshLikeState();
+        return;
+      }
+      if (error.message && error.message.includes("not liked")) {
+        setLiked(false);
+        await refreshLikeState();
+        return;
+      }
+      
+      toast.error("Failed to update like status");
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const refreshLikeState = async () => {
+    if (!id || !user) return;
+    
+    try {
+      const res = await apiFetch<{ status: boolean; data: any }>(`/posts/${id}`);
+      setLikeCount(res.data.likes || 0);
+      setLiked(Boolean(res.data.userLiked));
+    } catch (error) {
+      // Silently fail, don't show error for refresh
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = article?.title || "Check out this article";
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          url: url,
+        });
+      } catch (error) {
+        // User cancelled sharing
+        console.log("Share cancelled");
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard!");
+      } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        toast.success("Link copied to clipboard!");
+      }
+    }
+  };
 
   if (loading) return (
     <div className="max-w-3xl mx-auto py-8">
@@ -90,7 +195,12 @@ export const NewsDetailPage: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" className="border-[#292932] hover:text-white hover:bg-[#292932]">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-[#292932] hover:text-white hover:bg-[#292932]"
+                onClick={handleShare}
+              >
                 <ShareIcon className="w-4 h-4 mr-2" />
                 Share
               </Button>
@@ -117,10 +227,33 @@ export const NewsDetailPage: React.FC = () => {
         {/* Article Actions */}
         <div className="flex items-center justify-between mb-12 p-6 bg-[#15151a] rounded-lg border border-[#292932]">
           <div className="flex items-center space-x-4">
-            <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-              👍 Like ({article.likes})
-            </Button>
-            <Button variant="outline" className="border-[#292932] text-white hover:bg-[#292932]">
+            {user ? (
+              <Button 
+                onClick={handleLike}
+                disabled={likeLoading}
+                className={`${
+                  liked 
+                    ? 'bg-red-600 hover:bg-red-700 border-red-600' 
+                    : 'bg-[#f34024] hover:bg-[#f34024]/90 border-[#f34024]'
+                } text-white border-2 transition-all duration-200 ${likeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <HeartIcon className={`w-4 h-4 mr-2 ${liked ? 'fill-white' : ''} ${likeLoading ? 'animate-pulse' : ''}`} />
+                {likeLoading ? '...' : `${liked ? 'Liked' : 'Like'} (${likeCount})`}
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => toast.error("Please login to like articles")}
+                className="bg-[#f34024] hover:bg-[#f34024]/90 text-white border-2 border-[#f34024]"
+              >
+                <HeartIcon className="w-4 h-4 mr-2" />
+                Like ({likeCount})
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              className="border-[#292932] hover:text-white hover:bg-[#292932]"
+              onClick={handleShare}
+            >
               <ShareIcon className="w-4 h-4 mr-2" />
               Share Article
             </Button>

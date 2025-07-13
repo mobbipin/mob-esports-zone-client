@@ -42,7 +42,7 @@ export const AdminPendingTournamentsPage: React.FC = () => {
           approved,
           reviewNotes: reviewNotes || ""
         })
-      });
+      }, true, false, false);
       
       // Remove from list
       setPendingTournaments(prev => prev.filter(t => t.id !== tournamentId));

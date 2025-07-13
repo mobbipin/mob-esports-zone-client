@@ -67,7 +67,7 @@ const FriendsPage: React.FC = () => {
   };
   const sendRequest = async (receiverId: string) => {
     try {
-      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ receiverId, senderName: user?.username }) });
+      await apiFetch("/friends/request", { method: "POST", body: JSON.stringify({ receiverId, senderName: user?.username }) }, true, false, false);
       toast.success("Friend request sent");
       setRequestSent((prev) => [...prev, receiverId]);
       setSearchResults((results) => results.filter((u) => u.id !== receiverId));
@@ -80,7 +80,7 @@ const FriendsPage: React.FC = () => {
     try {
       const requestId = requestPending[receiverId];
       if (!requestId) return;
-      await apiFetch(`/friends/${requestId}/cancel`, { method: "POST" });
+      await apiFetch(`/friends/${requestId}/cancel`, { method: "POST" }, true, false, false);
       toast.success("Friend request cancelled");
       setRequestSent((prev) => prev.filter((id) => id !== receiverId));
       fetchPending();
@@ -90,7 +90,7 @@ const FriendsPage: React.FC = () => {
   };
   const acceptRequest = async (id: string) => {
     try {
-      await apiFetch(`/friends/${id}/accept`, { method: "PUT" });
+      await apiFetch(`/friends/${id}/accept`, { method: "PUT" }, true, false, false);
       toast.success("Friend request accepted");
       fetchFriends();
       fetchPending();
@@ -100,7 +100,7 @@ const FriendsPage: React.FC = () => {
   };
   const rejectRequest = async (id: string) => {
     try {
-      await apiFetch(`/friends/${id}/reject`, { method: "PUT" });
+      await apiFetch(`/friends/${id}/reject`, { method: "PUT" }, true, false, false);
       toast.success("Friend request rejected");
       fetchPending();
     } catch (err: any) {
@@ -109,7 +109,7 @@ const FriendsPage: React.FC = () => {
   };
   const togglePrivacy = async () => {
     try {
-      await apiFetch("/friends/privacy", { method: "PUT", body: JSON.stringify({ isPublic: !privacy }) });
+      await apiFetch("/friends/privacy", { method: "PUT", body: JSON.stringify({ isPublic: !privacy }) }, true, false, false);
       setPrivacy((p) => (p ? 0 : 1));
       toast.success("Privacy updated");
     } catch (err: any) {

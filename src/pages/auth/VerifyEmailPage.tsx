@@ -25,7 +25,7 @@ export const VerifyEmailPage: React.FC = () => {
         await apiFetch('/auth/verify-email', {
           method: 'POST',
           body: JSON.stringify({ token })
-        });
+        }, true, false, false);
         setSuccess(true);
         toast.success('Email verified successfully!');
       } catch (err) {
