@@ -4,12 +4,17 @@ import { cn } from "../../lib/utils";
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & {
+    interactive?: boolean;
+    hover?: boolean;
+  }
+>(({ className, interactive = false, hover = false, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border bg-card text-card-foreground shadow",
+      "rounded-xl border bg-card text-card-foreground shadow transition-all duration-300",
+      interactive && "cursor-pointer hover:scale-[1.02] hover:shadow-lg",
+      hover && "hover:border-[#f34024] hover:shadow-[#f34024]/10",
       className,
     )}
     {...props}
@@ -35,7 +40,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("font-semibold leading-none tracking-tight", className)}
+    className={cn("font-semibold leading-none tracking-tight text-white", className)}
     {...props}
   />
 ));
@@ -47,7 +52,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-gray-400", className)}
     {...props}
   />
 ));
@@ -73,24 +78,15 @@ const CardFooter = React.forwardRef<
 ));
 CardFooter.displayName = "CardFooter";
 
-export {
-  Card,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-  CardContent,
-};
-
-// Dialog components for modals
+// Enhanced dialog components with better styling
 export function Dialog({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-      <div className="bg-[#19191d] rounded-2xl shadow-lg p-0 w-full max-w-lg relative border border-[#292932]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#19191d] rounded-2xl shadow-2xl p-0 w-full max-w-lg relative border border-[#292932] animate-in fade-in-0 zoom-in-95 duration-200">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white text-xl font-bold focus:outline-none"
+          className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-[#f34024] rounded-full p-1 transition-colors"
           aria-label="Close"
         >
           ×
@@ -111,6 +107,21 @@ export function DialogTitle({ children }: { children: ReactNode }) {
 
 export function DialogClose({ onClick }: { onClick: () => void }) {
   return (
-    <button onClick={onClick} className="absolute top-3 right-3 text-gray-400 hover:text-white text-xl font-bold focus:outline-none" aria-label="Close">×</button>
+    <button 
+      onClick={onClick} 
+      className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-[#f34024] rounded-full p-1 transition-colors" 
+      aria-label="Close"
+    >
+      ×
+    </button>
   );
 }
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+};

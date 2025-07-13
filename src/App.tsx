@@ -5,6 +5,7 @@ import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { ScrollToTop } from "./components/ui/ScrollToTop";
+import { ToastProvider } from "./components/ui/toast";
 
 // Public Pages
 import { HomePage } from "./pages/public/HomePage";
@@ -62,7 +63,7 @@ export const App = (): JSX.Element => {
   }
 
   return (
-    <>
+    <ToastProvider>
       <ScrollToTop />
       <Routes>
         {/* Public Routes */}
@@ -163,6 +164,6 @@ export const App = (): JSX.Element => {
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
-    </>
+    </ToastProvider>
   );
 };

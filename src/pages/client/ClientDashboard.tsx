@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { TrophyIcon, UsersIcon, CalendarIcon, TrendingUpIcon, StarIcon, ArrowRightIcon, UserPlus, LogOutIcon } from "lucide-react";
+import { TrophyIcon, UsersIcon, CalendarIcon, TrendingUpIcon, StarIcon, ArrowRightIcon, UserPlus, LogOutIcon, UserIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { apiFetch } from "../../lib/api";
 import toast from "react-hot-toast";
-import { Skeleton } from "../../components/ui/skeleton";
+import { DashboardSkeleton } from "../../components/ui/skeleton";
 
 // Import CreateTeamDialog
 import { CreateTeamDialog } from "./CreateTeamDialog";
@@ -106,23 +106,11 @@ export const ClientDashboard: React.FC = () => {
   if (loading) return (
     <div className="min-h-screen bg-[#1a1a1e] py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Skeleton height={40} width={300} className="mb-8" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} height={100} />)}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <Skeleton height={200} />
-            <Skeleton height={200} />
-          </div>
-          <div className="space-y-8">
-            <Skeleton height={120} />
-            <Skeleton height={120} />
-          </div>
-        </div>
+        <DashboardSkeleton />
       </div>
     </div>
   );
+  
   if (error) return <div className="text-center text-red-500 py-12">{error}</div>;
 
   // Stats
@@ -151,7 +139,7 @@ export const ClientDashboard: React.FC = () => {
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <Card key={index} className="bg-[#15151a] border-[#292932]">
+              <Card key={index} className="bg-[#15151a] border-[#292932] hover:border-[#f34024] transition-all duration-300 hover:shadow-lg hover:shadow-[#f34024]/10 transform hover:-translate-y-1" hover>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -183,7 +171,7 @@ export const ClientDashboard: React.FC = () => {
                     <div className="text-gray-400">You haven't registered for any tournaments yet.</div>
                   ) : (
                     registeredTournaments.map((tournament: any) => (
-                      <div key={tournament.id} className="flex items-center justify-between p-4 bg-[#19191d] rounded-lg">
+                      <div key={tournament.id} className="flex items-center justify-between p-4 bg-[#19191d] rounded-lg hover:bg-[#292932] transition-colors">
                         <div className="flex-1">
                           <h3 className="text-white font-medium mb-1">{tournament.name}</h3>
                           <div className="flex items-center text-gray-400 text-sm">
@@ -198,14 +186,13 @@ export const ClientDashboard: React.FC = () => {
                               {tournament.status}
                             </span>
                             {/* Only show Withdraw if user is registered */}
-                            {tournament.isRegistered && (
+                            {tournament.status === "registration" && (
                               <Button 
                                 size="sm" 
                                 variant="outline" 
                                 className="border-red-500 text-red-400 hover:bg-red-600 hover:text-white"
                                 onClick={() => handleWithdrawFromTournament(tournament.id)}
                               >
-                                <LogOutIcon className="w-3 h-3 mr-1" />
                                 Withdraw
                               </Button>
                             )}
@@ -221,25 +208,26 @@ export const ClientDashboard: React.FC = () => {
             {/* Recent Matches */}
             <Card className="bg-[#15151a] border-[#292932]">
               <CardContent className="p-6">
-                <h2 className="text-xl font-bold text-white mb-6">Recent Match History</h2>
-                <div className="space-y-3">
+                <h2 className="text-xl font-bold text-white mb-6">Recent Matches</h2>
+                <div className="space-y-4">
                   {recentMatches.length === 0 ? (
-                    <div className="text-gray-400">No recent matches.</div>
+                    <div className="text-gray-400">No recent matches found.</div>
                   ) : (
                     recentMatches.map((match: any) => (
-                      <div key={match.id} className="flex items-center justify-between p-3 bg-[#19191d] rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className={`w-3 h-3 rounded-full ${match.status === "completed" && match.winnerId === team?.id ? "bg-green-500" : "bg-red-500"}`}></div>
-                          <div>
-                            <div className="text-white font-medium">Match {match.matchNumber}</div>
-                            <div className="text-gray-400 text-sm">Round {match.round}</div>
+                      <div key={match.id} className="flex items-center justify-between p-4 bg-[#19191d] rounded-lg hover:bg-[#292932] transition-colors">
+                        <div className="flex-1">
+                          <h3 className="text-white font-medium mb-1">Match #{match.matchNumber}</h3>
+                          <div className="text-gray-400 text-sm">
+                            Round {match.round} • {match.status}
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className={`font-bold text-sm ${match.status === "completed" && match.winnerId === team?.id ? "text-green-500" : "text-red-500"}`}>
-                            {match.status === "completed" ? (match.winnerId === team?.id ? "Win" : "Loss") : match.status}
+                          <div className="text-white font-bold">
+                            {match.score1} - {match.score2}
                           </div>
-                          <div className="text-gray-400 text-sm">{match.score1} - {match.score2}</div>
+                                                     <div className="text-gray-400 text-sm">
+                             {match.winnerId ? (match.winnerId === user?.teamId ? "Victory" : "Defeat") : "Pending"}
+                           </div>
                         </div>
                       </div>
                     ))
@@ -251,49 +239,47 @@ export const ClientDashboard: React.FC = () => {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* Quick Actions */}
+            {/* Team Management */}
             <Card className="bg-[#15151a] border-[#292932]">
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
-                <div className="space-y-3">
-                  <Link to="/tournaments">
-                    <Button className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white justify-start">
-                      <TrophyIcon className="w-4 h-4 mr-2" />
-                      Browse Tournaments
-                    </Button>
-                  </Link>
-                  {team ? (
-                    <Link to="/dashboard/manage-team">
-                      <Button
-                        variant="outline"
-                        className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start"
-                      >
-                        <UsersIcon className="w-4 h-4 mr-2" />
+                <h2 className="text-lg font-bold text-white mb-4">Team Management</h2>
+                {team ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <img 
+                        src={team.logoUrl || "https://via.placeholder.com/40x40?text=T"} 
+                        alt={team.name}
+                        className="w-10 h-10 rounded-lg"
+                      />
+                      <div>
+                        <h3 className="text-white font-medium">{team.name}</h3>
+                        <p className="text-gray-400 text-sm">[{team.tag}]</p>
+                      </div>
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      {team.members?.length || 1} members
+                    </div>
+                    <Link to="/manage-team">
+                      <Button className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white">
                         Manage Team
                       </Button>
                     </Link>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start"
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-gray-400 text-sm">
+                      You're not part of a team yet.
+                    </div>
+                    <Button 
+                      className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white"
                       onClick={handleCreateTeamClick}
                     >
-                      <UsersIcon className="w-4 h-4 mr-2" />
                       Create Team
                     </Button>
-                  )}
-                  <Link to="/dashboard/profile">
-                    <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932] hover:text-white justify-start">
-                      <StarIcon className="w-4 h-4 mr-2" />
-                      Edit Profile
-                    </Button>
-                  </Link>
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
-
-            {/* Create Team Dialog */}
-            <CreateTeamDialog open={showCreateTeamDialog} onClose={() => setShowCreateTeamDialog(false)} onTeamCreated={() => setShowCreateTeamDialog(false)} />
 
             {/* Pending Invites */}
             <Card className="bg-[#15151a] border-[#292932]">
@@ -304,7 +290,7 @@ export const ClientDashboard: React.FC = () => {
                 ) : (
                   <ul className="space-y-2">
                     {invites.filter(i => i.status === 'pending').map((invite) => (
-                      <li key={invite.id} className="flex items-center justify-between bg-[#19191d] rounded px-3 py-2">
+                      <li key={invite.id} className="flex items-center justify-between bg-[#19191d] rounded px-3 py-2 hover:bg-[#292932] transition-colors">
                         <div>
                           <div className="text-white text-sm font-medium">Team: {invite.teamName || 'Unknown Team'}</div>
                           <div className="text-gray-400 text-xs">From: {invite.invitedByName || invite.invitedByEmail || 'Unknown User'}</div>
@@ -320,45 +306,50 @@ export const ClientDashboard: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Team Overview */}
-            {team && (
-              <Card className="bg-[#15151a] border-[#292932]">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-white">My Team</h3>
-                    <Link to="/dashboard/manage-team" className="text-[#f34024] hover:text-[#f34024]/80 text-sm">
-                      Manage
-                    </Link>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-white font-medium">{team.name}</div>
-                    <div className="text-gray-400 text-sm">{team.bio}</div>
-                    <div className="flex items-center space-x-2 mt-2">
-                      {team.members?.map((member: any) => (
-                        <div key={member.userId} className="flex items-center space-x-1">
-                          <span className="text-xs text-white">{member.role === "owner" ? "👑" : ""}{member.userId}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-
-        {/* Add a section for Friends quick access */}
-        <div className="mt-8">
-          <div className="bg-[#15151a] border border-[#292932] rounded-xl p-6 flex items-center gap-4">
-            <UserPlus className="w-10 h-10 text-[#f34024]" />
-            <div className="flex-1">
-              <div className="text-lg text-white font-semibold mb-1">Friends</div>
-              <div className="text-gray-400 text-sm mb-2">Manage your friends and requests</div>
-              <Link to="/friends" className="text-[#f34024] hover:underline">Go to Friends</Link>
-            </div>
+            {/* Quick Actions */}
+            <Card className="bg-[#15151a] border-[#292932]">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
+                <div className="space-y-3">
+                  <Link to="/tournaments">
+                    <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932]">
+                      <TrophyIcon className="w-4 h-4 mr-2" />
+                      Browse Tournaments
+                    </Button>
+                  </Link>
+                  <Link to="/friends">
+                    <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932]">
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Manage Friends
+                    </Button>
+                  </Link>
+                  <Link to="/profile">
+                    <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932]">
+                      <UserIcon className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
+
+      {/* Create Team Dialog */}
+      {showCreateTeamDialog && (
+        <CreateTeamDialog
+          open={showCreateTeamDialog}
+          onClose={() => setShowCreateTeamDialog(false)}
+          onTeamCreated={() => {
+            setShowCreateTeamDialog(false);
+            // Refresh user context to update teamId
+            apiFetch("/auth/me").then((res: any) => {
+              setUserData(res.data);
+            });
+          }}
+        />
+      )}
     </div>
   );
 };
