@@ -116,7 +116,7 @@ export const Navbar: React.FC = () => {
               className="w-8 h-8 object-contain group-hover:scale-110 transition-transform duration-200"
             />
             <span className="text-xl font-bold text-white group-hover:text-[#f34024] transition-colors duration-200">
-              MOB ESPORTS
+              MOB ESPORTS ZONE 
             </span>
           </Link>
 

@@ -323,7 +323,7 @@ export const ClientDashboard: React.FC = () => {
                       Manage Friends
                     </Button>
                   </Link>
-                  <Link to="/profile">
+                  <Link to="/dashboard/profile">
                     <Button variant="outline" className="w-full border-[#292932] hover:bg-[#292932]">
                       <UserIcon className="w-4 h-4 mr-2" />
                       Edit Profile
