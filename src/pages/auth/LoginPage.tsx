@@ -122,40 +122,52 @@ export const LoginPage: React.FC = () => {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  label="Email Address"
-                  leftIcon={<MailIcon className="w-4 h-4" />}
-                  className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
-                  placeholder="Enter your email"
-                  error={fieldErrors.email?.[0]}
-                  required
-                />
+                <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <MailIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] pl-10"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                {fieldErrors.email && fieldErrors.email.map((err, idx) => (
+                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                ))}
               </div>
 
               <div>
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  label="Password"
-                  leftIcon={<LockIcon className="w-4 h-4" />}
-                  rightIcon={
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-gray-400 hover:text-white transition-colors"
-                    >
-                      {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                    </button>
-                  }
-                  className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024]"
-                  placeholder="Enter your password"
-                  error={fieldErrors.password?.[0]}
-                  required
-                />
+                <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <LockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-[#19191d] border-[#292932] text-white focus:border-[#f34024] pl-10 pr-10"
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                </div>
+                {fieldErrors.password && fieldErrors.password.map((err, idx) => (
+                  <div key={idx} className="text-xs text-red-500 mt-1">{err}</div>
+                ))}
               </div>
 
               <Button
@@ -172,9 +184,12 @@ export const LoginPage: React.FC = () => {
             <div className="mt-6 text-center">
               <p className="text-gray-400">
                 Don't have an account?{" "}
-                <Link to="/register" className="text-[#f34024] hover:text-[#f34024]/80 font-medium">
+                <button 
+                  onClick={() => window.location.href = '/?auth=register'} 
+                  className="text-[#f34024] hover:text-[#f34024]/80 font-medium"
+                >
                   Sign up here
-                </Link>
+                </button>
               </p>
             </div>
           </CardContent>

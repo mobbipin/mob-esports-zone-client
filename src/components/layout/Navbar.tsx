@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BellIcon, MenuIcon, XIcon, UserIcon, LogOutIcon, UserPlus, HomeIcon, TrophyIcon, NewspaperIcon, UsersIcon } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../ui/button";
@@ -11,6 +11,7 @@ import classNames from "classnames";
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -41,6 +42,14 @@ export const Navbar: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  // Check for auth parameter in URL
+  useEffect(() => {
+    const authParam = searchParams.get('auth');
+    if (authParam === 'login' || authParam === 'register') {
+      setAuthDialogOpen(authParam);
+    }
+  }, [searchParams]);
 
   const fetchNotifications = async () => {
     try {
@@ -257,25 +266,10 @@ export const Navbar: React.FC = () => {
               </>
             ) : (
               <div className="flex items-center space-x-2">
-                {isMobile ? (
-                  <>
-                    <Link to="/login">
-                      <Button variant="outline" className="border-[#292932] hover:bg-[#292932]">
-                        Login
-                      </Button>
-                    </Link>
-                    <Link to="/register">
-                      <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white">
-                        Register
-                      </Button>
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="outline" className="border-[#292932] hover:bg-[#292932]" onClick={() => setAuthDialogOpen("login")}>Login</Button>
-                    <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white" onClick={() => setAuthDialogOpen("register")}>Register</Button>
-                  </>
-                )}
+                <>
+                  <Button variant="outline" className="border-[#292932] hover:bg-[#292932]" onClick={() => setAuthDialogOpen("login")}>Login</Button>
+                  <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white" onClick={() => setAuthDialogOpen("register")}>Register</Button>
+                </>
               </div>
             )}
 
@@ -318,7 +312,17 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
-      <AuthDialog open={!!authDialogOpen} mode={authDialogOpen} onClose={() => setAuthDialogOpen(null)} />
+      <AuthDialog 
+        open={!!authDialogOpen} 
+        mode={authDialogOpen} 
+        onClose={() => {
+          setAuthDialogOpen(null);
+          // Remove auth parameter from URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete('auth');
+          window.history.replaceState({}, '', url.toString());
+        }} 
+      />
     </nav>
   );
 };

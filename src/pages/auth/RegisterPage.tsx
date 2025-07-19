@@ -213,9 +213,12 @@ export const RegisterPage: React.FC = () => {
             <div className="mt-6 text-center">
               <p className="text-gray-400">
                 Already have an account?{" "}
-                <Link to="/login" className="text-[#f34024] hover:text-[#f34024]/80 font-medium">
+                <button 
+                  onClick={() => window.location.href = '/?auth=login'} 
+                  className="text-[#f34024] hover:text-[#f34024]/80 font-medium"
+                >
                   Sign in here
-                </Link>
+                </button>
               </p>
             </div>
           </CardContent>

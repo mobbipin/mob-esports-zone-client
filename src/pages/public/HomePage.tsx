@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { TrophyIcon, UsersIcon, CalendarIcon, ArrowRightIcon } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { TournamentCardSkeleton, DashboardSkeleton } from "../../components/ui/skeleton";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
+import AuthDialog from "../../components/ui/AuthDialog";
 
 export const HomePage: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [featuredTournaments, setFeaturedTournaments] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authDialogOpen, setAuthDialogOpen] = useState<null | "login" | "register">(null);
 
   useEffect(() => {
     setLoading(true);
@@ -33,6 +36,14 @@ export const HomePage: React.FC = () => {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Check for auth parameter in URL
+  useEffect(() => {
+    const authParam = searchParams.get('auth');
+    if (authParam === 'login' || authParam === 'register') {
+      setAuthDialogOpen(authParam);
+    }
+  }, [searchParams]);
 
   if (loading) return (
     <div className="min-h-screen">
@@ -137,11 +148,13 @@ export const HomePage: React.FC = () => {
                 </Button>
               </Link>
             ) : (
-              <Link to="/register">
-                <Button className="bg-[#f34024] hover:bg-[#f34024]/90 text-white px-8 py-3 text-lg" size="lg">
-                  Join as Player
-                </Button>
-              </Link>
+              <Button 
+                className="bg-[#f34024] hover:bg-[#f34024]/90 text-white px-8 py-3 text-lg" 
+                size="lg"
+                onClick={() => setAuthDialogOpen("register")}
+              >
+                Join as Player
+              </Button>
             )}
             <Link to="/tournaments">
               <Button variant="outline" className="px-8 py-3 text-lg" size="lg">
@@ -293,11 +306,12 @@ export const HomePage: React.FC = () => {
             Build your team, climb the ranks, and win amazing prizes.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register">
-              <Button className="bg-white text-[#f34024] hover:bg-gray-100 px-8 py-3 text-lg font-semibold">
-                JOIN OUR LEAGUE NOW
-              </Button>
-            </Link>
+            <Button 
+              className="bg-white text-[#f34024] hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
+              onClick={() => setAuthDialogOpen("register")}
+            >
+              JOIN OUR LEAGUE NOW
+            </Button>
             <Link to="/tournaments">
               <Button variant="outline" className=" hover:text-[#f34024] px-8 py-3 text-lg">
                 Browse Tournaments
@@ -306,6 +320,18 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+      
+      <AuthDialog 
+        open={!!authDialogOpen} 
+        mode={authDialogOpen} 
+        onClose={() => {
+          setAuthDialogOpen(null);
+          // Remove auth parameter from URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete('auth');
+          window.history.replaceState({}, '', url.toString());
+        }} 
+      />
     </div>
   );
 };

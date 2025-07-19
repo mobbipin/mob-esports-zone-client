@@ -3,11 +3,13 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export const VerifyEmailPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { setUserData } = useAuth();
   const [verifying, setVerifying] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,14 @@ export const VerifyEmailPage: React.FC = () => {
         }, true, false, false);
         setSuccess(true);
         toast.success('Email verified successfully!');
+        
+        // Refresh user data to update emailVerified status
+        try {
+          const userRes = await apiFetch<{ status: boolean; data: any }>('/auth/me');
+          setUserData(userRes.data);
+        } catch (userErr) {
+          console.error('Failed to refresh user data:', userErr);
+        }
       } catch (err) {
         const errorMessage = typeof err === 'string' ? err : 'Verification failed';
         setError(errorMessage);
@@ -41,11 +51,26 @@ export const VerifyEmailPage: React.FC = () => {
   }, [searchParams]);
 
   const handleContinue = () => {
-    navigate('/dashboard');
+    // Get the updated user data to determine the correct dashboard
+    apiFetch<{ status: boolean; data: any }>('/auth/me')
+      .then((userRes) => {
+        const user = userRes.data;
+        if (user.role === 'admin') {
+          navigate('/admin');
+        } else if (user.role === 'tournament_organizer') {
+          navigate('/organizer');
+        } else {
+          navigate('/dashboard');
+        }
+      })
+      .catch(() => {
+        // Fallback to dashboard if user data fetch fails
+        navigate('/dashboard');
+      });
   };
 
   const handleResend = () => {
-    navigate('/login');
+    navigate('/');
   };
 
   if (verifying) {

@@ -259,7 +259,7 @@ export const ClientDashboard: React.FC = () => {
                     <div className="text-gray-400 text-sm">
                       {team.members?.length || 1} members
                     </div>
-                    <Link to="/manage-team">
+                    <Link to="/dashboard/manage-team">
                       <Button className="w-full bg-[#f34024] hover:bg-[#f34024]/90 text-white">
                         Manage Team
                       </Button>
